@@ -1,8 +1,7 @@
-module.exports = function(RED) {
+module.exports = function (RED) {
+    var MongoClient = require("mongodb").MongoClient;
 
-    var MongoClient = require('mongodb').MongoClient;
-
-    function ClientNode(n){
+    function ClientNode(n) {
         RED.nodes.createNode(this, n);
 
         // set database connection url
@@ -11,17 +10,17 @@ module.exports = function(RED) {
 
         // mongo client options
         this.options = {};
-        if(this.credentials.username || this.credentials.password) {
+        if (this.credentials.username || this.credentials.password) {
             this.options.auth = {
                 username: this.credentials.username,
-                password: this.credentials.password
+                password: this.credentials.password,
             };
             this.options.authSource = n.authSource;
             this.options.authMechanism = n.authMechanism;
         }
-        if(n.tls) this.options.tls = n.tls;
-        if(n.tlsCAFile) this.options.tlsCAFile = n.tlsCAFile;
-        if(n.tlsInsecure) this.options.tlsInsecure = n.tlsInsecure;
+        if (n.tls) this.options.tls = n.tls;
+        if (n.tlsCAFile) this.options.tlsCAFile = n.tlsCAFile;
+        if (n.tlsInsecure) this.options.tlsInsecure = n.tlsInsecure;
 
         this.client = null;
 
@@ -33,11 +32,11 @@ module.exports = function(RED) {
         };
     }
 
-    RED.nodes.registerType('mongodb4-client', ClientNode, {
+    RED.nodes.registerType("mongodb4-client", ClientNode, {
         credentials: {
-            username: {type:"text"},
-            password: {type:"password"}
-        }
+            username: { type: "text" },
+            password: { type: "password" },
+        },
     });
 
     function OperationNode(n) {
@@ -48,11 +47,17 @@ module.exports = function(RED) {
         var node = this;
         var counter = 0;
 
-        node.status({fill:"yellow",shape:"ring",text:"waiting"});
+        node.status({ fill: "yellow", shape: "ring", text: "waiting" });
 
-        node.on('input', async function(msg, send, done) {
+        node.on("input", async function (msg, send, done) {
+            send =
+                send ||
+                function () {
+                    node.send.apply(node, arguments);
+                };
 
             var clientNode = RED.nodes.getNode(node.clientNode);
+
             try {
                 var client = await clientNode.connect();
                 try {
@@ -62,42 +67,47 @@ module.exports = function(RED) {
 
                     // get operation
                     var operation = msg.operation || node.operation;
-                    if(typeof c[operation] !== 'function') {
+                    if (typeof c[operation] !== "function") {
                         throw `Operation "${operation}" is not supported by collection.`;
                     }
 
                     // execute request
                     var request = null;
-                    if(Array.isArray(msg.payload)){
+                    if (Array.isArray(msg.payload)) {
                         request = c[operation].apply(this, msg.payload);
-                    }else{
+                    } else {
                         request = c[operation](msg.payload);
                     }
 
                     // continue with response
-                    if(operation === 'aggregate' || operation === 'find') {
+                    if (operation === "aggregate" || operation === "find") {
                         msg.payload = await request.toArray();
-                    }else{
+                    } else {
                         msg.payload = await request;
                     }
                     send(msg);
 
                     // display node status
-                    counter ++;
-                    node.status({fill:"green",shape:"dot",text:`success ${counter}`});
-
+                    counter++;
+                    node.status({
+                        fill: "green",
+                        shape: "dot",
+                        text: `success ${counter}`,
+                    });
                 } finally {
                     client.close();
                 }
-            }catch(err) {
+            } catch (err) {
                 counter = 0;
-                node.status({fill:"red",shape:"ring",text:"error"});
+                node.status({ fill: "red", shape: "ring", text: "error" });
                 throw err;
-            } 
+            }
 
-            done();
+            if (done) {
+                done();
+            }
         });
     }
 
-    RED.nodes.registerType('mongodb4', OperationNode);
-}
+    RED.nodes.registerType("mongodb4", OperationNode);
+};
