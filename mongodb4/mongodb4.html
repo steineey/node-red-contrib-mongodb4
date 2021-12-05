@@ -74,23 +74,21 @@
     </div>
 </script>
 
-
-
 <script type="text/javascript">
     RED.nodes.registerType('mongodb4',{
         category: 'storage-input',
-        color: '#7090b7',
+        color: '#3FA037',
         defaults: {
             clientNode: {type: 'mongodb4-client'},
             collection: {value: ''},
             operation: {value: ''},
-            name: {value: 'mongodb4'},
+            name: {value: ''},
         },
         inputs:1,
         outputs:1,
-        icon: "file.png",
+        icon: "db.svg",
         label: function() {
-            return this.name;
+            return this.name || 'mongodb4';
         }
     });
 </script>
