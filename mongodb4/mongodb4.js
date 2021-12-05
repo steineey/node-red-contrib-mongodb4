@@ -100,7 +100,7 @@ module.exports = function (RED) {
             } catch (err) {
                 counter = 0;
                 node.status({ fill: "red", shape: "ring", text: "error" });
-                node.error(err);
+                node.error(err.message);
             }
 
             if (done) {
