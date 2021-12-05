@@ -1,0 +1,16 @@
+{
+  "name": "node-red-contrib-mongodb4",
+  "version": "1.0.0",
+  "description": "A simple node-red wrapper for mongodb driver 4",
+  "keywords": [],
+  "author": "Christopher Steinbach",
+  "license": "MIT",
+  "dependencies": {
+    "mongodb": "^4.2.1"
+  },
+  "node-red": {
+    "nodes": {
+      "mongodb4": "mongodb4/mongodb4.js"
+    }
+  }
+}
