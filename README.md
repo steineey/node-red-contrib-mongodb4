@@ -2,8 +2,8 @@
 A simple Mongodb wrapper for Node-Red powered by Mongodb NodeJS driver 4.
 
 This packages includes two nodes for node-red:
-(1) A configuration node which defines a connection to a MongoDB database server
-(2) A flow node to execute every MongoDB collection operation supported by MongoDB NodeJS driver 4.
+* A configuration node which defines a connection to a MongoDB database server
+* A flow node to execute every MongoDB collection operation supported by MongoDB NodeJS driver 4.
 
 ## Configuration Node
 
