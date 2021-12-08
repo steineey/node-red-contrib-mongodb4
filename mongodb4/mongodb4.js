@@ -39,7 +39,7 @@ module.exports = function (RED) {
 		},
 	});
 
-	function CollectionNode(n) {
+	function OperationNode(n) {
 		RED.nodes.createNode(this, n);
 		var node = this;
 		node.n = {
@@ -85,12 +85,7 @@ module.exports = function (RED) {
 						}
 
 						// execute request
-						var request = null;
-						if (Array.isArray(msg.payload)) {
-							request = c[operation].apply(this, msg.payload);
-						} else {
-							request = c[operation](msg.payload);
-						}
+						var request = c[operation](...msg.payload);
 
 						// continue with response
 						if (operation === "aggregate" || operation === "find") {
@@ -141,7 +136,7 @@ module.exports = function (RED) {
 			}
 		};
 
-		if (clientNode) {
+		if (node.n.client) {
 			connect();
 		} else {
 			node.status({ fill: "red", shape: "ring", text: "error" });
@@ -149,12 +144,12 @@ module.exports = function (RED) {
 		}
 
 		node.on("close", function (removed, done) {
-			if (connection) {
-				connection.close();
+			if (node.n.connection) {
+				node.n.connection.close();
 			}
 			done();
 		});
 	}
 
-	RED.nodes.registerType("mongodb4-collection", CollectionNode);
+	RED.nodes.registerType("mongodb4", OperationNode);
 };
