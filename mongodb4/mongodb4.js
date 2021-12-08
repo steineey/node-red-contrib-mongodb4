@@ -101,7 +101,7 @@ module.exports = function (RED) {
 									break;
 
 								case "forEach":
-									request.forEach(function (payload) {
+									await request.forEach(function (payload) {
 										msg.payload = payload;
 										send(msg);
 									});
