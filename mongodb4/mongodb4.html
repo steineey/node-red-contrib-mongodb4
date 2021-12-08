@@ -1,182 +1,188 @@
 <script type="text/javascript">
-    RED.nodes.registerType("mongodb4-client", {
-        category: "config",
-        defaults: {
-            name: { value: "" },
-            protocol: { value: "mongodb", required: true },
-            hostname: { value: "", required: true },
-            port: { value: "27017", required: true },
-            dbName: { value: "", required: true },
-            authSource: { value: "" },
-            authMechanism: { value: "" },
-            tls: { value: false },
-            tlsCAFile: { value: "" },
-            tlsInsecure: { value: false },
-        },
-        credentials: {
-            username: { value: "", type: "text" },
-            password: { value: "", type: "password" },
-        },
-        label: function () {
-            return this.name || `${this.hostname} ${this.dbName}`;
-        },
-    });
+	RED.nodes.registerType("mongodb4-client", {
+		category: "config",
+		defaults: {
+			name: { value: "" },
+			protocol: { value: "mongodb", required: true },
+			hostname: { value: "", required: true },
+			port: { value: "27017", required: true },
+			dbName: { value: "", required: true },
+			authSource: { value: "" },
+			authMechanism: { value: "" },
+			tls: { value: false },
+			tlsCAFile: { value: "" },
+			tlsInsecure: { value: false },
+		},
+		credentials: {
+			username: { value: "", type: "text" },
+			password: { value: "", type: "password" },
+		},
+		label: function () {
+			return this.name || `${this.hostname} ${this.dbName}`;
+		},
+	});
 </script>
 
 <script type="text/html" data-template-name="mongodb4-client">
-    <div class="form-row">
-        <label for="node-config-input-protocol"
-            ><i class="fa fa-envelope-o"></i> Protocol</label
-        >
-        <input type="text" id="node-config-input-protocol" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-hostname"
-            ><i class="fa fa-server"></i> Hostname</label
-        >
-        <input type="text" id="node-config-input-hostname" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-port"
-            ><i class="fa fa-plug"></i> Port</label
-        >
-        <input type="text" id="node-config-input-port" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-dbName"
-            ><i class="fa fa-database"></i> Database</label
-        >
-        <input type="text" id="node-config-input-dbName" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-username"
-            ><i class="fa fa-user"></i> Username</label
-        >
-        <input type="text" id="node-config-input-username" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-password"
-            ><i class="fa fa-unlock-alt"></i> Password</label
-        >
-        <input type="password" id="node-config-input-password" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-authSource"
-            ><i class="fa fa-id-card-o"></i> AuthSource</label
-        >
-        <input type="text" id="node-config-input-authSource" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-authMechanism"
-            ><i class="fa fa-key"></i> AuthMech</label
-        >
-        <input type="text" id="node-config-input-authMechanism" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-tls"
-            ><i class="fa fa-handshake-o"></i> TLS</label
-        >
-        <input type="checkbox" id="node-config-input-tls" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-tlsCAFile"
-            ><i class="fa fa-certificate"></i> CA-File</label
-        >
-        <input type="text" id="node-config-input-tlsCAFile" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-tlsInsecure"
-            ><i class="fa fa-ban"></i> TLS-Insecure</label
-        >
-        <input type="checkbox" id="node-config-input-tlsInsecure" />
-    </div>
-    <div class="form-row">
-        <label for="node-config-input-name"
-            ><i class="fa fa-tag"></i> Name</label
-        >
-        <input type="text" id="node-config-input-name" />
-    </div>
+	<div class="form-row">
+		<label for="node-config-input-protocol"
+			><i class="fa fa-envelope-o"></i> Protocol</label
+		>
+		<input type="text" id="node-config-input-protocol" />
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-hostname"
+			><i class="fa fa-server"></i> Hostname</label
+		>
+		<input type="text" id="node-config-input-hostname" />
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-port"><i class="fa fa-plug"></i> Port</label>
+		<input type="text" id="node-config-input-port" />
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-dbName"
+			><i class="fa fa-database"></i> Database</label
+		>
+		<input type="text" id="node-config-input-dbName" />
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-username"
+			><i class="fa fa-user"></i> Username</label
+		>
+		<input type="text" id="node-config-input-username" />
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-password"
+			><i class="fa fa-unlock-alt"></i> Password</label
+		>
+		<input type="password" id="node-config-input-password" />
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-authSource"
+			><i class="fa fa-id-card-o"></i> AuthSource</label
+		>
+		<input type="text" id="node-config-input-authSource" />
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-authMechanism"
+			><i class="fa fa-key"></i> AuthMech</label
+		>
+		<input type="text" id="node-config-input-authMechanism" />
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-tls"
+			><i class="fa fa-handshake-o"></i> TLS</label
+		>
+		<input type="checkbox" id="node-config-input-tls" />
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-tlsCAFile"
+			><i class="fa fa-certificate"></i> CA-File</label
+		>
+		<input type="text" id="node-config-input-tlsCAFile" />
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-tlsInsecure"
+			><i class="fa fa-ban"></i> TLS-Insecure</label
+		>
+		<input type="checkbox" id="node-config-input-tlsInsecure" />
+	</div>
+	<div class="form-row">
+		<label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+		<input type="text" id="node-config-input-name" />
+	</div>
 </script>
 
 <script type="text/javascript">
-    RED.nodes.registerType("mongodb4", {
-        category: "storage-input",
-        color: "#3FA037",
-        defaults: {
-            clientNode: { type: "mongodb4-client" },
-            collection: { value: "" },
-            operation: { value: "" },
-            name: { value: "" },
-        },
-        inputs: 1,
-        outputs: 1,
-        icon: "db.svg",
-        label: function () {
-            return this.name || this.operation || "mongodb4";
-        },
-    });
+	RED.nodes.registerType("mongodb4", {
+		category: "storage-input",
+		color: "#3FA037",
+		defaults: {
+			clientNode: { type: "mongodb4-client" },
+			collection: { value: "" },
+			operation: { value: "" },
+			output: { value: "toArray" },
+			name: { value: "" },
+		},
+		inputs: 1,
+		outputs: 1,
+		icon: "db.svg",
+		label: function () {
+			return this.name || this.operation || "mongodb4";
+		},
+	});
 </script>
 
-<script type="text/html" data-template-name="mongodb4">
-    <div class="form-row">
-        <label for="node-input-clientNode"
-            ><i class="fa fa-server"></i> Connection</label
-        >
-        <input type="text" id="node-input-clientNode" />
-    </div>
-    <div class="form-row">
-        <label for="node-input-collection"
-            ><i class="fa fa-archive"></i> Collection</label
-        >
-        <input
-            type="text"
-            id="node-input-collection"
-            placeholder="msg.collection"
-        />
-    </div>
-    <div class="form-row">
-        <label for="node-input-operation"
-            ><i class="fa fa-code"></i> Operation</label
-        >
-        <input
-            type="text"
-            id="node-input-operation"
-            placeholder="msg.operation"
-        />
-    </div>
-    <div class="form-row">
-        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name" />
-    </div>
+<script type="text/html" data-template-name="mongodb4-collection">
+	<div class="form-row">
+		<label for="node-input-clientNode"
+			><i class="fa fa-server"></i> Connection</label
+		>
+		<input type="text" id="node-input-clientNode" />
+	</div>
+	<div class="form-row">
+		<label for="node-input-collection"
+			><i class="fa fa-archive"></i> Collection</label
+		>
+		<input
+			type="text"
+			id="node-input-collection"
+			placeholder="msg.collection"
+		/>
+	</div>
+	<div class="form-row">
+		<label for="node-input-operation"
+			><i class="fa fa-code"></i> Operation</label
+		>
+		<input type="text" id="node-input-operation" placeholder="msg.operation" />
+	</div>
+	<div class="form-row">
+		<label for="node-input-output"><i class="fa fa-code"></i> Output</label>
+		<select id="node-input-output">
+			<option value="toArray">toArray</option>
+			<option value="forEach">forEach</option>
+		</select>
+	</div>
+	<div class="form-row">
+		<label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+		<input type="text" id="node-input-name" placeholder="Name" />
+	</div>
 </script>
 
-<script type="text/markdown" data-help-name="mongodb4">
-A simple mongodb wrapper power by NodeJS MongoDB Driver 4.
+<script type="text/markdown" data-help-name="mongodb4-collection">
+	A simple mongodb wrapper power by NodeJS MongoDB Driver 4.
 
-### Connection
-Define a MongoDB database server connection as configuration node.
+	### Connection
 
-### Collection
-MongoDB database collection static definitino or with `msg.collection`
+	Define a MongoDB database server connection as configuration node.
 
-### Operation
-A MongoDB Driver 4 collection CRUD operation for example `find`, `insertOne`, `updateOne`, `aggregate` and many more.
+	### Collection
 
-Read the full documentation here: [Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
+	MongoDB database collection static definitino or with `msg.collection`
 
-### Payload
-Pass the CRUD operation arguments as message payload.
+	### Operation
 
-1. Object-Type Payload for simple `collection.find({_id: '123'});`
-2. Array-Type Payload for multiple arguments collection `collection.find({_id: '123'}, {fields: {...}})`
+	A MongoDB Driver 4 collection CRUD operation for example `find`, `insertOne`, `updateOne`, `aggregate` and many more.
 
-More information here: 
-[Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
+	Read the full documentation here: [Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
 
-### Output
-The node will output the database driver response as message payload.
-The operations `aggregate` and `find` will always output `toArray` forEach is not supported yet.
+	### Payload
 
-### More information
-[Visit the MongoDB Driver 4 Docs](https://docs.mongodb.com/drivers/node/current/)
+	Pass the CRUD operation arguments as message payload.
+
+	1. Object-Type Payload for simple `collection.find({_id: '123'});`
+	2. Array-Type Payload for multiple arguments collection `collection.find({_id: '123'}, {fields: {...}})`
+
+	More information here:
+	[Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
+
+	### Output
+
+	The node will output the database driver response as message payload.
+	The operations `aggregate` and `find` will always output `toArray` forEach is not supported yet.
+
+	### More information
+
+	[Visit the MongoDB Driver 4 Docs](https://docs.mongodb.com/drivers/node/current/)
 </script>

@@ -1,113 +1,160 @@
 module.exports = function (RED) {
-    var MongoClient = require("mongodb").MongoClient;
+	var MongoClient = require("mongodb").MongoClient;
 
-    function ClientNode(n) {
-        RED.nodes.createNode(this, n);
+	function ClientNode(n) {
+		RED.nodes.createNode(this, n);
 
-        // set database connection url
-        this.url = `${n.protocol}://${n.hostname}:${n.port}`;
-        this.dbName = n.dbName;
+		// set database connection url
+		this.url = `${n.protocol}://${n.hostname}:${n.port}`;
+		this.dbName = n.dbName;
 
-        // mongo client options
-        this.options = {};
-        if (this.credentials.username || this.credentials.password) {
-            this.options.auth = {
-                username: this.credentials.username,
-                password: this.credentials.password,
-            };
-            this.options.authSource = n.authSource;
-            this.options.authMechanism = n.authMechanism;
-        }
-        if (n.tls) this.options.tls = n.tls;
-        if (n.tlsCAFile) this.options.tlsCAFile = n.tlsCAFile;
-        if (n.tlsInsecure) this.options.tlsInsecure = n.tlsInsecure;
+		// mongo client options
+		this.options = {};
+		if (this.credentials.username || this.credentials.password) {
+			this.options.auth = {
+				username: this.credentials.username,
+				password: this.credentials.password,
+			};
+			this.options.authSource = n.authSource;
+			this.options.authMechanism = n.authMechanism;
+		}
+		if (n.tls) this.options.tls = n.tls;
+		if (n.tlsCAFile) this.options.tlsCAFile = n.tlsCAFile;
+		if (n.tlsInsecure) this.options.tlsInsecure = n.tlsInsecure;
 
-        this.client = null;
+		this.client = null;
 
-        var node = this;
+		var node = this;
 
-        node.connect = function () {
-            this.client = new MongoClient(this.url, this.options);
-            return this.client.connect();
-        };
-    }
+		node.connect = function () {
+			this.client = new MongoClient(this.url, this.options);
+			return this.client.connect();
+		};
+	}
 
-    RED.nodes.registerType("mongodb4-client", ClientNode, {
-        credentials: {
-            username: { type: "text" },
-            password: { type: "password" },
-        },
-    });
+	RED.nodes.registerType("mongodb4-client", ClientNode, {
+		credentials: {
+			username: { type: "text" },
+			password: { type: "password" },
+		},
+	});
 
-    function OperationNode(n) {
-        RED.nodes.createNode(this, n);
-        this.clientNode = n.clientNode;
-        this.operation = n.operation;
-        this.collection = n.collection;
-        var node = this;
-        var counter = 0;
+	function CollectionNode(n) {
+		RED.nodes.createNode(this, n);
+		var node = this;
+		node.n = {
+			client: RED.nodes.getNode(n.clientNode),
+			connection: null,
+			database: null,
+			counter: {
+				success: 0,
+				error: 0,
+			},
+			collection: n.collection,
+			operation: n.operation,
+			output: n.output,
+		};
 
-        node.status({ fill: "yellow", shape: "ring", text: "waiting" });
+		var connect = async function () {
+			node.status({ fill: "yellow", shape: "ring", text: "connecting" });
 
-        node.on("input", async function (msg, send, done) {
-            send =
-                send ||
-                function () {
-                    node.send.apply(node, arguments);
-                };
+			try {
+				node.n.connection = await node.n.client.connect();
 
-            var clientNode = RED.nodes.getNode(node.clientNode);
+				// get database
+				node.n.database = node.n.connection.db(node.n.client.dbName);
+				await node.n.database.command({ ping: 1 });
+				node.status({ fill: "green", shape: "dot", text: "connected" });
 
-            try {
-                var client = await clientNode.connect();
-                try {
-                    // get collection
-                    var collection = msg.collection || node.collection;
-                    var c = client.db(clientNode.dbName).collection(collection);
+				node.on("input", async function (msg, send, done) {
+					send =
+						send ||
+						function () {
+							node.send.apply(node, arguments);
+						};
 
-                    // get operation
-                    var operation = msg.operation || node.operation;
-                    if (typeof c[operation] !== "function") {
-                        throw `Operation "${operation}" is not supported by collection.`;
-                    }
+					try {
+						// get collection
+						var collection = msg.collection || node.n.collection;
+						var c = node.n.database.collection(collection);
 
-                    // execute request
-                    var request = null;
-                    if (Array.isArray(msg.payload)) {
-                        request = c[operation].apply(this, msg.payload);
-                    } else {
-                        request = c[operation](msg.payload);
-                    }
+						// get operation
+						var operation = msg.operation || node.n.operation;
+						if (typeof c[operation] !== "function") {
+							throw `Operation "${operation}" is not supported by collection.`;
+						}
 
-                    // continue with response
-                    if (operation === "aggregate" || operation === "find") {
-                        msg.payload = await request.toArray();
-                    } else {
-                        msg.payload = await request;
-                    }
-                    send(msg);
+						// execute request
+						var request = null;
+						if (Array.isArray(msg.payload)) {
+							request = c[operation].apply(this, msg.payload);
+						} else {
+							request = c[operation](msg.payload);
+						}
 
-                    // display node status
-                    counter++;
-                    node.status({
-                        fill: "green",
-                        shape: "dot",
-                        text: `success ${counter}`,
-                    });
-                } finally {
-                    client.close();
-                }
-            } catch (err) {
-                counter = 0;
-                node.status({ fill: "red", shape: "ring", text: "error" });
-                node.error(err.message);
-            }
+						// continue with response
+						if (operation === "aggregate" || operation === "find") {
+							switch (node.n.output) {
+								case "toArray":
+									msg.payload = await request.toArray();
+									send(msg);
+									break;
 
-            if (done) {
-                done();
-            }
-        });
-    }
+								case "forEach":
+									request.forEach(function (payload) {
+										msg.payload = payload;
+										send(msg);
+									});
+									break;
+							}
+						} else {
+							msg.payload = await request;
+							send(msg);
+						}
 
-    RED.nodes.registerType("mongodb4", OperationNode);
+						// display node status
+						node.n.counter.success++;
+						node.status({
+							fill: "green",
+							shape: "dot",
+							text: `success ${node.n.counter.success}, error ${node.n.counter.error}`,
+						});
+					} catch (err) {
+						node.n.counter.error++;
+						node.status({
+							fill: "red",
+							shape: "ring",
+							text: "operation error",
+						});
+						node.error(err);
+					}
+
+					if (done) {
+						done();
+					}
+				});
+				// end of node input
+			} catch (err) {
+				counter = 0;
+				node.status({ fill: "red", shape: "ring", text: "error" });
+				node.error(err);
+			}
+		};
+
+		if (clientNode) {
+			connect();
+		} else {
+			node.status({ fill: "red", shape: "ring", text: "error" });
+			node.error("Missing node configuration");
+		}
+
+		node.on("close", function (removed, done) {
+			if (connection) {
+				connection.close();
+			}
+			done();
+		});
+	}
+
+	RED.nodes.registerType("mongodb4-collection", CollectionNode);
 };
