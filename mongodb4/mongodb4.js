@@ -97,7 +97,11 @@ module.exports = function (RED) {
             }
 
             // execute request
-            var request = c[operation](...msg.payload);
+            if(Array.isArray(msg.payload)){
+              var request = c[operation](...msg.payload);
+            }else{
+              throw "msg.payload isn't array type.";
+            }
 
             // continue with response
             if (operation === "aggregate" || operation === "find") {
