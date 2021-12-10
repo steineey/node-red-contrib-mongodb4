@@ -8,7 +8,7 @@
 			port: { value: "27017", required: true },
 			dbName: { value: "", required: true },
 			authSource: { value: "" },
-			authMechanism: { value: "" },
+			authMechanism: { value: "SCRAM-SHA-256" },
 			tls: { value: false },
 			tlsCAFile: { value: "" },
 			tlsInsecure: { value: false },
@@ -28,7 +28,10 @@
     <label for="node-config-input-protocol"
       ><i class="fa fa-envelope-o"></i> Protocol</label
     >
-    <input type="text" id="node-config-input-protocol" />
+    <select id="node-config-input-protocol">
+      <option value="mongodb">toArray</option>
+      <option value="mongodb+srv">forEach</option>
+    </select>
   </div>
   <div class="form-row">
     <label for="node-config-input-hostname"
@@ -38,13 +41,13 @@
   </div>
   <div class="form-row">
     <label for="node-config-input-port"><i class="fa fa-plug"></i> Port</label>
-    <input type="text" id="node-config-input-port" />
+    <input type="text" id="node-config-input-port" placeholder="27017" />
   </div>
   <div class="form-row">
     <label for="node-config-input-dbName"
       ><i class="fa fa-database"></i> Database</label
     >
-    <input type="text" id="node-config-input-dbName" />
+    <input type="text" id="node-config-input-dbName" placeholder="my-database" />
   </div>
   <div class="form-row">
     <label for="node-config-input-username"
@@ -62,13 +65,17 @@
     <label for="node-config-input-authSource"
       ><i class="fa fa-id-card-o"></i> AuthSource</label
     >
-    <input type="text" id="node-config-input-authSource" />
+    <input type="text" id="node-config-input-authSource" placeholder="my-database" />
   </div>
   <div class="form-row">
     <label for="node-config-input-authMechanism"
       ><i class="fa fa-key"></i> AuthMech</label
     >
-    <input type="text" id="node-config-input-authMechanism" />
+    <select id="node-config-input-authMechanism">
+      <option value="SCRAM-SHA-256">SCRAM-SHA-256</option>
+      <option value="SCRAM-SHA-1">SCRAM-SHA-1</option>
+      <option value="MONGODB-CR">MONGODB-CR</option>
+    </select>
   </div>
   <div class="form-row">
     <label for="node-config-input-tls"
@@ -78,9 +85,9 @@
   </div>
   <div class="form-row">
     <label for="node-config-input-tlsCAFile"
-      ><i class="fa fa-certificate"></i> CA-File</label
+      ><i class="fa fa-certificate"></i>TLS CA-File</label
     >
-    <input type="text" id="node-config-input-tlsCAFile" />
+    <input type="text" id="node-config-input-tlsCAFile" placeholder="/data/cert/ca.cer" />
   </div>
   <div class="form-row">
     <label for="node-config-input-tlsInsecure"
@@ -89,9 +96,46 @@
     <input type="checkbox" id="node-config-input-tlsInsecure" />
   </div>
   <div class="form-row">
+    <label for="node-config-input-advanced"><i class="fa fa-cogs"></i> Advanced</label>
+    <input type="text" id="node-config-input-advanced" placeholder="{}" />
+  </div>
+  <div class="form-row">
     <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
     <input type="text" id="node-config-input-name" />
   </div>
+</script>
+
+<script type="text/markdown" data-help-name="mongodb4-client">
+Configuration node for MongoDB connection config.
+Node will create a MongoDB Client.
+
+### Protocol
+`mongodb` or `mongodb+srv`
+
+### Hostname
+Hostname / IP to connect to MongoDB
+
+### Port
+Default port is 27017.
+
+### Database
+A MongoDB database name.
+
+### AuthSource
+Specify the database name associated with the user’s credentials.
+
+### AuthMech
+Specify the authentication mechanism that MongoDB will use to authenticate the connection.
+
+### TLS CA-File
+Specifies the location of a local .pem file that contains the root certificate chain from the Certificate Authority. This file is used to validate the certificate presented by the mongod/mongos instance.
+
+### TLS-Insecure
+Disables various certificate validations. THIS IS REALLY NOT SECURE.
+
+### Advanced
+MongoDB Driver 4 MongoClient supports more options. Feel free to overwrite all client options with your own JSON-Config-String.
+[MongoClientOptions](https://mongodb.github.io/node-mongodb-native/4.2/interfaces/MongoClientOptions.html)
 </script>
 
 <script type="text/javascript">
@@ -151,7 +195,7 @@
 </script>
 
 <script type="text/markdown" data-help-name="mongodb4">
-A simple mongodb wrapper power by NodeJS MongoDB Driver 4.
+Execute MongoDB collection operations with this node.
 
 ### Connection
 

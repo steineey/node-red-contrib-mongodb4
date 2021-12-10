@@ -3,32 +3,44 @@ module.exports = function (RED) {
 
   function ClientNode(n) {
     RED.nodes.createNode(this, n);
-
+    var node = this;
+    
     // set database connection url
-    this.url = `${n.protocol}://${n.hostname}:${n.port}`;
-    this.dbName = n.dbName;
+    node.url = `${n.protocol}://${n.hostname}:${n.port}`;
+    node.dbName = n.dbName;
 
     // mongo client options
-    this.options = {};
-    if (this.credentials.username || this.credentials.password) {
-      this.options.auth = {
-        username: this.credentials.username,
-        password: this.credentials.password,
+    node.options = {};
+    if (node.credentials.username || node.credentials.password) {
+      node.options.auth = {
+        username: node.credentials.username,
+        password: node.credentials.password,
       };
-      this.options.authSource = n.authSource;
-      this.options.authMechanism = n.authMechanism;
+      node.options.authSource = n.authSource;
+      node.options.authMechanism = n.authMechanism;
     }
-    if (n.tls) this.options.tls = n.tls;
-    if (n.tlsCAFile) this.options.tlsCAFile = n.tlsCAFile;
-    if (n.tlsInsecure) this.options.tlsInsecure = n.tlsInsecure;
+    if (n.tls) node.options.tls = n.tls;
+    if (n.tlsCAFile) node.options.tlsCAFile = n.tlsCAFile;
+    if (n.tlsInsecure) node.options.tlsInsecure = n.tlsInsecure;
 
-    this.client = null;
+    // parse advanced options as json
+    if(n.advanced) {
+      try {
+        var advanced = JSON.parse(n.advanced);
+        node.options = {
+          ...node.options,
+          ...advanced
+        };
+      }catch(err){
+        throw 'Parsing advanced options JSON failed.';
+      }
+    }
 
-    var node = this;
+    node.client = null;
 
     node.connect = function () {
-      this.client = new MongoClient(this.url, this.options);
-      return this.client.connect();
+      node.client = new MongoClient(node.url, node.options);
+      return node.client.connect();
     };
   }
 
