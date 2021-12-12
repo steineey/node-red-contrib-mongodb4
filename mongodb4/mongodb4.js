@@ -4,43 +4,54 @@ module.exports = function (RED) {
   function ClientNode(n) {
     RED.nodes.createNode(this, n);
     var node = this;
-    
-    // set database connection url
-    node.url = `${n.protocol}://${n.hostname}:${n.port}`;
-    node.dbName = n.dbName;
+
+    // node data
+    node.n = {
+      // set database connection url
+      url: `${n.protocol}://${n.hostname}:${n.port}`,
+      // database name
+      dbName: n.dbName,
+      options: {},
+      client: null
+    };
 
     // mongo client options
-    node.options = {};
     if (node.credentials.username || node.credentials.password) {
-      node.options.auth = {
+      node.n.options.auth = {
         username: node.credentials.username,
         password: node.credentials.password,
       };
-      node.options.authSource = n.authSource;
-      node.options.authMechanism = n.authMechanism;
+      node.n.options.authSource = n.authSource;
+      node.n.options.authMechanism = n.authMechanism;
     }
-    if (n.tls) node.options.tls = n.tls;
-    if (n.tlsCAFile) node.options.tlsCAFile = n.tlsCAFile;
-    if (n.tlsInsecure) node.options.tlsInsecure = n.tlsInsecure;
+
+    // tls support
+    if (n.tls) node.n.options.tls = n.tls;
+    if (n.tlsCAFile) node.n.options.tlsCAFile = n.tlsCAFile;
+    if (n.tlsInsecure) node.n.options.tlsInsecure = n.tlsInsecure;
 
     // parse advanced options as json
     if(n.advanced) {
       try {
         var advanced = JSON.parse(n.advanced);
-        node.options = {
-          ...node.options,
+        node.n.options = {
+          ...node.n.options,
           ...advanced
         };
       }catch(err){
-        throw 'Parsing advanced options JSON failed.';
+        node.error(new Error('Parsing advanced options JSON failed.'));
       }
     }
 
-    node.client = null;
-
     node.connect = function () {
-      node.client = new MongoClient(node.url, node.options);
-      return node.client.connect();
+      if(node.n.client === null){
+        node.n.client = new MongoClient(node.n.url, node.n.options);
+      }
+      return node.n.client.connect();
+    };
+
+    node.getDBName = function() {
+      return node.n.dbName;
     };
   }
 
@@ -74,8 +85,14 @@ module.exports = function (RED) {
         node.n.connection = await node.n.client.connect();
 
         // get database
-        node.n.database = node.n.connection.db(node.n.client.dbName);
-        await node.n.database.command({ ping: 1 });
+        node.n.database = node.n.connection.db(node.n.client.getDBName());
+        
+        // ping test
+        var ping = await node.n.database.command({ ping: 1 });
+        if(!ping || ping.ok !== 1) {
+          throw 'Ping database server failed.';
+        }
+
         node.status({ fill: "green", shape: "dot", text: "connected" });
 
         node.on("input", async function (msg, send, done) {
@@ -88,19 +105,26 @@ module.exports = function (RED) {
           try {
             // get collection
             var collection = msg.collection || node.n.collection;
+            if(!collection){
+              throw new Error('Database collection undefined.');
+            }
             var c = node.n.database.collection(collection);
 
             // get operation
             var operation = msg.operation || node.n.operation;
+            if(!operation) {
+              throw new Error('Collection operation undefined.');
+            }
             if (typeof c[operation] !== "function") {
-              throw `Operation "${operation}" is not supported by collection.`;
+              throw new Error(`Unsupported collection operation: "${operation}"`);
             }
 
-            // execute request
+            // execute operation
+            var request = null;
             if(Array.isArray(msg.payload)){
-              var request = c[operation](...msg.payload);
-            }else{
-              throw "msg.payload isn't array type.";
+              request = c[operation](...msg.payload);
+            } else {
+              throw new Error('Payload is missing or not array type.');
             }
 
             // continue with response
@@ -137,7 +161,7 @@ module.exports = function (RED) {
               shape: "ring",
               text: "operation error",
             });
-            node.error(err);
+            node.error(err.message);
           }
 
           if (done) {
@@ -148,7 +172,7 @@ module.exports = function (RED) {
       } catch (err) {
         counter = 0;
         node.status({ fill: "red", shape: "ring", text: "error" });
-        node.error(err);
+        node.error(err.message);
       }
     };
 
@@ -156,14 +180,16 @@ module.exports = function (RED) {
       connect();
     } else {
       node.status({ fill: "red", shape: "ring", text: "error" });
-      node.error("Missing node configuration");
+      node.error(new Error("Node configuration undefined."));
     }
 
     node.on("close", function (removed, done) {
       if (node.n.connection) {
         node.n.connection.close();
       }
-      done();
+      if(done) {
+        done();
+      }
     });
   }
 
