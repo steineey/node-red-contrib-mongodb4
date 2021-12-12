@@ -70,6 +70,32 @@ describe("testing mongodb4 nodes", function () {
     );
   });
 
+  it("connection advanced", function (done) {
+    helper.load(
+      mongodbNode,
+      [
+        getHelperNode(),
+        { ...getConfigNode(), advanced: '{"authSource": "nodered"}' },
+        getOperationNode(),
+      ],
+      { "config-node": testConfig.credentials },
+      function () {
+        var operationNode = helper.getNode("operation-node");
+
+        var c = 0;
+        var states = ["connecting", "connected"];
+
+        operationNode.on("call:status", (call) => {
+          should(call.firstArg.text).be.equal(states[c]);
+          c++;
+          if (call.firstArg.text === "connected") {
+            done();
+          }
+        });
+      }
+    );
+  });
+
   it("insert test", function (done) {
     helper.load(
       mongodbNode,
@@ -145,7 +171,11 @@ describe("testing mongodb4 nodes", function () {
   it("find for each test", function (done) {
     helper.load(
       mongodbNode,
-      [getHelperNode(), getConfigNode(), {...getOperationNode(), output: 'forEach'}],
+      [
+        getHelperNode(),
+        getConfigNode(),
+        { ...getOperationNode(), output: "forEach" },
+      ],
       { "config-node": testConfig.credentials },
       function () {
         var helperNode = helper.getNode("helper-node");
