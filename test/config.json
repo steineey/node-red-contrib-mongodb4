@@ -1,0 +1,16 @@
+{
+  "configNode": {
+    "protocol": "mongodb",
+    "hostname": "localhost",
+    "port": "27017",
+    "dbName": "nodered",
+    "authSource": "nodered",
+    "authMechanism": "SCRAM-SHA-256",
+    "tls": false
+  },
+  "credentials": {
+    "username": "nodered",
+    "password": "nodered"
+  },
+  "collection": "test"
+}
