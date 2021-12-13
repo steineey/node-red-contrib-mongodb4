@@ -12,7 +12,7 @@ module.exports = function (RED) {
       // database name
       dbName: n.dbName,
       options: {},
-      client: null
+      client: null,
     };
 
     // mongo client options
@@ -31,26 +31,25 @@ module.exports = function (RED) {
     if (n.tlsInsecure) node.n.options.tlsInsecure = n.tlsInsecure;
 
     // parse advanced options as json
-    if(n.advanced) {
+    if (n.advanced) {
       try {
         var advanced = JSON.parse(n.advanced);
         node.n.options = {
           ...node.n.options,
-          ...advanced
+          ...advanced,
         };
-      }catch(err){
-        node.error(new Error('Parsing advanced options JSON failed.'));
+      } catch (err) {
+        node.error(new Error("Parsing advanced options JSON failed."));
       }
     }
 
+    node.n.client = new MongoClient(node.n.url, node.n.options);
+
     node.connect = function () {
-      if(node.n.client === null){
-        node.n.client = new MongoClient(node.n.url, node.n.options);
-      }
       return node.n.client.connect();
     };
 
-    node.getDBName = function() {
+    node.getDBName = function () {
       return node.n.dbName;
     };
   }
@@ -86,11 +85,11 @@ module.exports = function (RED) {
 
         // get database
         node.n.database = node.n.connection.db(node.n.client.getDBName());
-        
+
         // ping test
         var ping = await node.n.database.command({ ping: 1 });
-        if(!ping || ping.ok !== 1) {
-          throw 'Ping database server failed.';
+        if (!ping || ping.ok !== 1) {
+          throw new Error("Ping database server failed.");
         }
 
         node.status({ fill: "green", shape: "dot", text: "connected" });
@@ -105,26 +104,28 @@ module.exports = function (RED) {
           try {
             // get collection
             var collection = msg.collection || node.n.collection;
-            if(!collection){
-              throw new Error('Database collection undefined.');
+            if (!collection) {
+              throw new Error("Database collection undefined.");
             }
             var c = node.n.database.collection(collection);
 
             // get operation
             var operation = msg.operation || node.n.operation;
-            if(!operation) {
-              throw new Error('Collection operation undefined.');
+            if (!operation) {
+              throw new Error("Collection operation undefined.");
             }
             if (typeof c[operation] !== "function") {
-              throw new Error(`Unsupported collection operation: "${operation}"`);
+              throw new Error(
+                `Unsupported collection operation: "${operation}"`
+              );
             }
 
             // execute operation
             var request = null;
-            if(Array.isArray(msg.payload)){
+            if (Array.isArray(msg.payload)) {
               request = c[operation](...msg.payload);
             } else {
-              throw new Error('Payload is missing or not array type.');
+              throw new Error("Payload is missing or not array type.");
             }
 
             // continue with response
@@ -170,7 +171,7 @@ module.exports = function (RED) {
         });
         // end of node input
       } catch (err) {
-        counter = 0;
+        // error on connection
         node.status({ fill: "red", shape: "ring", text: "error" });
         node.error(err.message);
       }
@@ -187,7 +188,7 @@ module.exports = function (RED) {
       if (node.n.connection) {
         node.n.connection.close();
       }
-      if(done) {
+      if (done) {
         done();
       }
     });
