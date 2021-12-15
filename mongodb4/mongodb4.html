@@ -5,13 +5,14 @@
 			name: { value: "" },
 			protocol: { value: "mongodb", required: true },
 			hostname: { value: "", required: true },
-			port: { value: "27017", required: true },
+			port: { value: "" },
 			dbName: { value: "", required: true },
 			authSource: { value: "" },
 			authMechanism: { value: "SCRAM-SHA-256" },
 			tls: { value: false },
 			tlsCAFile: { value: "" },
 			tlsInsecure: { value: false },
+      advanced: {value: ""}
 		},
 		credentials: {
 			username: { value: "", type: "text" },
@@ -96,12 +97,13 @@
     <input type="checkbox" id="node-config-input-tlsInsecure" />
   </div>
   <div class="form-row">
-    <label for="node-config-input-advanced"><i class="fa fa-cogs"></i> Advanced</label>
-    <input type="text" id="node-config-input-advanced" placeholder="{}" />
-  </div>
-  <div class="form-row">
     <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
     <input type="text" id="node-config-input-name" />
+  </div>
+  <h4>Advanced</h4>
+  <div class="form-row">
+    <label for="node-config-input-advanced"><i class="fa fa-cogs"></i> Options</label>
+    <input type="text" id="node-config-input-advanced" placeholder="{}" />
   </div>
 </script>
 
@@ -116,7 +118,7 @@ Node will create a MongoDB Client.
 Hostname / IP to connect to MongoDB
 
 ### Port
-Default port is 27017.
+Optional port number. In most cases `27017`.
 
 ### Database
 A MongoDB database name.
@@ -134,7 +136,7 @@ Specifies the location of a local .pem file that contains the root certificate c
 Disables various certificate validations. THIS IS REALLY NOT SECURE.
 
 ### Advanced
-MongoDB Driver 4 MongoClient supports more options. Feel free to overwrite all client options with your own JSON-Config-String.
+MongoDB Driver 4 MongoClient supports more options. Feel free to overwrite all client options with your own.
 [MongoClientOptions](https://mongodb.github.io/node-mongodb-native/4.2/interfaces/MongoClientOptions.html)
 </script>
 

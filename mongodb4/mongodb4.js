@@ -8,12 +8,18 @@ module.exports = function (RED) {
     // node data
     node.n = {
       // set database connection url
-      url: `${n.protocol}://${n.hostname}:${n.port}`,
+      uri: null,
       // database name
       dbName: n.dbName,
       options: {},
       client: null,
     };
+
+    if(n.port){
+      node.n.uri = `${n.protocol}://${n.hostname}:${n.port}`;
+    }else{
+      node.n.uri = `${n.protocol}://${n.hostname}`;
+    }
 
     // mongo client options
     if (node.credentials.username || node.credentials.password) {
@@ -26,7 +32,7 @@ module.exports = function (RED) {
     }
 
     // tls support
-    if (n.tls) node.n.options.tls = n.tls;
+    node.n.options.tls = n.tls;
     if (n.tlsCAFile) node.n.options.tlsCAFile = n.tlsCAFile;
     if (n.tlsInsecure) node.n.options.tlsInsecure = n.tlsInsecure;
 
@@ -43,7 +49,7 @@ module.exports = function (RED) {
       }
     }
 
-    node.n.client = new MongoClient(node.n.url, node.n.options);
+    node.n.client = new MongoClient(node.n.uri, node.n.options);
 
     node.connect = function () {
       return node.n.client.connect();

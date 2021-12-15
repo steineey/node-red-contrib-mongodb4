@@ -37,7 +37,7 @@ This node will create a MongoDB client, with a connection pool for operation nod
 Hostname / IP to connect to MongoDB
 
 #### Port
-Default port is 27017.
+Optional port number. In most cases `27017`.
 
 #### Database
 A MongoDB database name.
