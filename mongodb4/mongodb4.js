@@ -152,7 +152,7 @@ module.exports = function (RED) {
       }
     };
 
-    node.on("input", async function (msg, send, done) {
+    node.on("input", function (msg, send, done) {
       send =
         send ||
         function () {
