@@ -13,11 +13,12 @@ module.exports = function (RED) {
       dbName: n.dbName,
       options: {},
       client: null,
+      connect: null,
     };
 
-    if(n.port){
+    if (n.port) {
       node.n.uri = `${n.protocol}://${n.hostname}:${n.port}`;
-    }else{
+    } else {
       node.n.uri = `${n.protocol}://${n.hostname}`;
     }
 
@@ -83,108 +84,125 @@ module.exports = function (RED) {
       output: n.output,
     };
 
-    var connect = async function () {
-      node.status({ fill: "yellow", shape: "ring", text: "connecting" });
-
+    var handleIn = async function (msg, send, done) {
       try {
-        node.n.connection = await node.n.client.connect();
+        // get collection
+        var c = msg.collection || node.n.collection;
+        if (!c) {
+          throw new Error("Database collection undefined.");
+        }
+        var collection = node.n.database.collection(c);
 
-        // get database
-        node.n.database = node.n.connection.db(node.n.client.getDBName());
-
-        // ping test
-        var ping = await node.n.database.command({ ping: 1 });
-        if (!ping || ping.ok !== 1) {
-          throw new Error("Ping database server failed.");
+        // get operation
+        var operation = msg.operation || node.n.operation;
+        if (!operation) {
+          throw new Error("Collection operation undefined.");
+        }
+        if (typeof collection[operation] !== "function") {
+          throw new Error(`Unsupported collection operation: "${operation}"`);
         }
 
-        node.status({ fill: "green", shape: "dot", text: "connected" });
+        // execute operation
+        var request = null;
+        if (Array.isArray(msg.payload)) {
+          request = collection[operation](...msg.payload);
+        } else {
+          throw new Error("Payload is missing or not array type.");
+        }
 
-        node.on("input", async function (msg, send, done) {
-          send =
-            send ||
-            function () {
-              node.send.apply(node, arguments);
-            };
-
-          try {
-            // get collection
-            var collection = msg.collection || node.n.collection;
-            if (!collection) {
-              throw new Error("Database collection undefined.");
-            }
-            var c = node.n.database.collection(collection);
-
-            // get operation
-            var operation = msg.operation || node.n.operation;
-            if (!operation) {
-              throw new Error("Collection operation undefined.");
-            }
-            if (typeof c[operation] !== "function") {
-              throw new Error(
-                `Unsupported collection operation: "${operation}"`
-              );
-            }
-
-            // execute operation
-            var request = null;
-            if (Array.isArray(msg.payload)) {
-              request = c[operation](...msg.payload);
-            } else {
-              throw new Error("Payload is missing or not array type.");
-            }
-
-            // continue with response
-            if (operation === "aggregate" || operation === "find") {
-              switch (node.n.output) {
-                case "toArray":
-                  msg.payload = await request.toArray();
-                  send(msg);
-                  break;
-
-                case "forEach":
-                  await request.forEach(function (payload) {
-                    msg.payload = payload;
-                    send(msg);
-                  });
-                  break;
-              }
-            } else {
-              msg.payload = await request;
+        // continue with response
+        if (operation === "aggregate" || operation === "find") {
+          switch (node.n.output) {
+            case "toArray":
+              msg.payload = await request.toArray();
               send(msg);
-            }
+              break;
 
-            // display node status
-            node.n.counter.success++;
-            node.status({
-              fill: "green",
-              shape: "dot",
-              text: `success ${node.n.counter.success}, error ${node.n.counter.error}`,
-            });
-          } catch (err) {
-            node.n.counter.error++;
-            node.status({
-              fill: "red",
-              shape: "ring",
-              text: "operation error",
-            });
-            node.error(err.message);
+            case "forEach":
+              await request.forEach(function (payload) {
+                msg.payload = payload;
+                send(msg);
+              });
+              break;
           }
+        } else {
+          msg.payload = await request;
+          send(msg);
+        }
 
-          if (done) {
-            done();
-          }
+        // display node status
+        node.n.counter.success++;
+        node.status({
+          fill: "green",
+          shape: "dot",
+          text: `success ${node.n.counter.success}, error ${node.n.counter.error}`,
         });
-        // end of node input
       } catch (err) {
-        // error on connection
-        node.status({ fill: "red", shape: "ring", text: "error" });
+        node.n.counter.error++;
+        node.status({
+          fill: "red",
+          shape: "ring",
+          text: "operation error",
+        });
         node.error(err.message);
+      }
+
+      if (done) {
+        done();
       }
     };
 
+    node.on("input", async function (msg, send, done) {
+      send =
+        send ||
+        function () {
+          node.send.apply(node, arguments);
+        };
+
+      if (node.n.database) {
+        // continue with operation
+        handleIn(msg, send, done);
+      } else if (node.n.connect) {
+        // wait for connection
+        node.n.connect.then(
+          () => {
+            handleIn(msg, send, done);
+          },
+          () => {
+            node.error("Message dropped. Connection error.");
+          }
+        );
+      } else {
+        node.error("Message dropped. Not connected.");
+      }
+    });
+
     if (node.n.client) {
-      connect();
+      // connect promise
+      node.n.connect = new Promise(async (resolve, reject) => {
+        node.status({ fill: "yellow", shape: "ring", text: "connecting" });
+
+        try {
+          node.n.connection = await node.n.client.connect();
+          node.n.database = node.n.connection.db(node.n.client.getDBName());
+
+          // ping test
+          var ping = await node.n.database.command({ ping: 1 });
+          if (!ping || ping.ok !== 1) {
+            throw new Error("Ping database server failed.");
+          }
+
+          node.n.connect = null;
+          node.status({ fill: "green", shape: "dot", text: "connected" });
+          resolve();
+        } catch (err) {
+          // error on connection
+          node.n.connect = null;
+          node.status({ fill: "red", shape: "ring", text: "connection error" });
+          node.error(err.message);
+          reject();
+        }
+      });
     } else {
       node.status({ fill: "red", shape: "ring", text: "error" });
       node.error(new Error("Node configuration undefined."));
