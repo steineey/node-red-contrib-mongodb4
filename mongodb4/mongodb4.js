@@ -164,24 +164,28 @@ module.exports = function (RED) {
         handleIn(msg, send, done);
       } else if (node.n.connect) {
         // wait for connection
-        node.n.connect.then(
-          () => {
+        node.n.connect.then((success) => {
+          if (success) {
             handleIn(msg, send, done);
-          },
-          () => {
+          } else {
             node.error("Message dropped. Connection error.");
+            if (done) {
+              done();
+            }
           }
-        );
+        });
       } else {
         node.error("Message dropped. Not connected.");
+        if (done) {
+          done();
+        }
       }
     });
 
     if (node.n.client) {
       // connect promise
-      node.n.connect = new Promise(async (resolve, reject) => {
+      node.n.connect = new Promise(async (resolve) => {
         node.status({ fill: "yellow", shape: "ring", text: "connecting" });
-
         try {
           node.n.connection = await node.n.client.connect();
           node.n.database = node.n.connection.db(node.n.client.getDBName());
@@ -191,16 +195,15 @@ module.exports = function (RED) {
           if (!ping || ping.ok !== 1) {
             throw new Error("Ping database server failed.");
           }
-
           node.n.connect = null;
           node.status({ fill: "green", shape: "dot", text: "connected" });
-          resolve();
+          resolve(true);
         } catch (err) {
           // error on connection
           node.n.connect = null;
           node.status({ fill: "red", shape: "ring", text: "connection error" });
           node.error(err.message);
-          reject();
+          resolve(false);
         }
       });
     } else {
