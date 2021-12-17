@@ -47,11 +47,9 @@ describe("testing mongodb4 nodes", function () {
       testFlow,
       { "config-node": testConfig.credentials },
       function () {
-        var helperNode = helper.getNode("helper-node");
         var operationNode = helper.getNode("operation-node");
         var configNode = helper.getNode("config-node");
 
-        should(helperNode).not.be.null();
         should(operationNode).not.be.null();
         should(configNode).not.be.null();
         should(operationNode.n.client).not.be.null();
@@ -132,6 +130,49 @@ describe("testing mongodb4 nodes", function () {
     );
   });
 
+  it("operations before connected", function (done) {
+    helper.load(
+      mongodbNode,
+      testFlow,
+      { "config-node": testConfig.credentials },
+      function () {
+        var helperNode = helper.getNode("helper-node");
+        var operationNode = helper.getNode("operation-node");
+
+        operationNode.receive({
+          payload: [{ uid: uid }],
+          collection: testConfig.collection,
+          operation: "insertOne",
+        });
+
+        operationNode.receive({
+          payload: [{ uid: uid }],
+          collection: testConfig.collection,
+          operation: "insertOne",
+        });
+
+        var counter = 0;
+
+        helperNode.on("input", function (msg) {
+          counter ++;
+          try {
+            msg.should.have.property("payload");
+            msg.payload.should.have.property("acknowledged", true);
+            if(counter === 2) {
+              done();
+            }
+          } catch (err) {
+            done(err);
+          }
+        });
+
+        operationNode.on("call:error", (call) => {
+          done(new Error(call.firstArg));
+        });
+      }
+    );
+  });
+
   it("find to array test", function (done) {
     helper.load(
       mongodbNode,
@@ -168,7 +209,7 @@ describe("testing mongodb4 nodes", function () {
     );
   });
 
-  it("find for each test", function (done) {
+  it("find for each", function (done) {
     helper.load(
       mongodbNode,
       [
@@ -235,7 +276,7 @@ describe("testing mongodb4 nodes", function () {
     );
   });
 
-  it("test invalid query", function (done) {
+  it("invalid query param", function (done) {
     helper.load(
       mongodbNode,
       testFlow,
