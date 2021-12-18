@@ -84,7 +84,7 @@ module.exports = function (RED) {
       output: n.output,
     };
 
-    var handleIn = async function (msg, send, done) {
+    async function handleIn(msg, send, done) {
       try {
         // get collection
         var c = msg.collection || node.n.collection;
@@ -150,7 +150,7 @@ module.exports = function (RED) {
       if (done) {
         done();
       }
-    };
+    }
 
     node.on("input", function (msg, send, done) {
       send =
@@ -182,30 +182,32 @@ module.exports = function (RED) {
       }
     });
 
-    if (node.n.client) {
-      // connect promise
-      node.n.connect = new Promise(async (resolve) => {
-        node.status({ fill: "yellow", shape: "ring", text: "connecting" });
-        try {
-          node.n.connection = await node.n.client.connect();
-          node.n.database = node.n.connection.db(node.n.client.getDBName());
+    async function connect() {
+      node.status({ fill: "yellow", shape: "ring", text: "connecting" });
+      try {
+        node.n.connection = await node.n.client.connect();
+        node.n.database = node.n.connection.db(node.n.client.getDBName());
 
-          // ping test
-          var ping = await node.n.database.command({ ping: 1 });
-          if (!ping || ping.ok !== 1) {
-            throw new Error("Ping database server failed.");
-          }
-          node.n.connect = null;
-          node.status({ fill: "green", shape: "dot", text: "connected" });
-          resolve(true);
-        } catch (err) {
-          // error on connection
-          node.n.connect = null;
-          node.status({ fill: "red", shape: "ring", text: "connection error" });
-          node.error(err.message);
-          resolve(false);
+        // ping test
+        var ping = await node.n.database.command({ ping: 1 });
+        if (!ping || ping.ok !== 1) {
+          throw new Error("Ping database server failed.");
         }
-      });
+        node.n.connect = null;
+        node.status({ fill: "green", shape: "dot", text: "connected" });
+        return true;
+      } catch (err) {
+        // error on connection
+        node.n.connect = null;
+        node.status({ fill: "red", shape: "ring", text: "connection error" });
+        node.error(err.message);
+        return false;
+      }
+    }
+
+    if (node.n.client) {
+      // connect async
+      node.n.connect = connect();
     } else {
       node.status({ fill: "red", shape: "ring", text: "error" });
       node.error(new Error("Node configuration undefined."));
