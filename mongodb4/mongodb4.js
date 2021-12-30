@@ -13,52 +13,69 @@ module.exports = function (RED) {
       dbName: n.dbName,
       options: {},
       client: null,
-      connect: null,
     };
 
-    if (n.port) {
-      node.n.uri = `${n.protocol}://${n.hostname}:${n.port}`;
-    } else {
-      node.n.uri = `${n.protocol}://${n.hostname}`;
-    }
-
-    // mongo client options
-    if (node.credentials.username || node.credentials.password) {
-      node.n.options.auth = {
-        username: node.credentials.username,
-        password: node.credentials.password,
-      };
-      node.n.options.authSource = n.authSource;
-      node.n.options.authMechanism = n.authMechanism;
-    }
-
-    // tls support
-    node.n.options.tls = n.tls;
-    if (n.tlsCAFile) node.n.options.tlsCAFile = n.tlsCAFile;
-    if (n.tlsInsecure) node.n.options.tlsInsecure = n.tlsInsecure;
-
-    // parse advanced options as json
-    if (n.advanced) {
-      try {
-        var advanced = JSON.parse(n.advanced);
-        node.n.options = {
-          ...node.n.options,
-          ...advanced,
-        };
-      } catch (err) {
-        node.error(new Error("Parsing advanced options JSON failed."));
+    try {
+      if (n.uriTabActive === 'tab-uri-advanced') {
+        if(n.uri) {
+          node.n.uri = n.uri;
+        }else{
+          throw new Error("Connection URI undefined.");
+        }
+      } else if (n.protocol && n.hostname) {
+        if (n.port) {
+          node.n.uri = `${n.protocol}://${n.hostname}:${n.port}`;
+        } else {
+          node.n.uri = `${n.protocol}://${n.hostname}`;
+        }
+      } else {
+        throw new Error("Connection URI undefined. Define a hostname.");
       }
+
+      // mongo client options
+      if (node.credentials.username || node.credentials.password) {
+        node.n.options.auth = {
+          username: node.credentials.username,
+          password: node.credentials.password,
+        };
+        if (n.authSource) {
+          node.n.options.authSource = n.authSource;
+        }
+        if (n.authMechanism) {
+          node.n.options.authMechanism = n.authMechanism;
+        }
+      }
+
+      // tls support
+      node.n.options.tls = n.tls;
+      if (n.tlsCAFile) node.n.options.tlsCAFile = n.tlsCAFile;
+      if (n.tlsInsecure) node.n.options.tlsInsecure = n.tlsInsecure;
+
+      // parse advanced options as json
+      if (n.advanced) {
+        try {
+          var advanced = JSON.parse(n.advanced);
+          node.n.options = {
+            ...node.n.options,
+            ...advanced,
+          };
+        } catch (err) {
+          throw new Error("Parsing advanced options JSON failed.");
+        }
+      }
+
+      node.n.client = new MongoClient(node.n.uri, node.n.options);
+
+      node.connect = function () {
+        return node.n.client.connect();
+      };
+
+      node.getDBName = function () {
+        return node.n.dbName;
+      };
+    } catch (err) {
+      node.error(err.message);
     }
-
-    node.n.client = new MongoClient(node.n.uri, node.n.options);
-
-    node.connect = function () {
-      return node.n.client.connect();
-    };
-
-    node.getDBName = function () {
-      return node.n.dbName;
-    };
   }
 
   RED.nodes.registerType("mongodb4-client", ClientNode, {
@@ -72,7 +89,7 @@ module.exports = function (RED) {
     RED.nodes.createNode(this, n);
     var node = this;
     node.n = {
-      client: RED.nodes.getNode(n.clientNode),
+      clientNode: RED.nodes.getNode(n.clientNode),
       connection: null,
       database: null,
       counter: {
@@ -185,8 +202,8 @@ module.exports = function (RED) {
     async function connect() {
       node.status({ fill: "yellow", shape: "ring", text: "connecting" });
       try {
-        node.n.connection = await node.n.client.connect();
-        node.n.database = node.n.connection.db(node.n.client.getDBName());
+        node.n.connection = await node.n.clientNode.connect();
+        node.n.database = node.n.connection.db(node.n.clientNode.getDBName());
 
         // ping test
         var ping = await node.n.database.command({ ping: 1 });
@@ -205,12 +222,12 @@ module.exports = function (RED) {
       }
     }
 
-    if (node.n.client) {
+    if (node.n.clientNode && node.n.clientNode.connect) {
       // connect async
       node.n.connect = connect();
     } else {
       node.status({ fill: "red", shape: "ring", text: "error" });
-      node.error(new Error("Node configuration undefined."));
+      node.error("Configuration node error.");
     }
 
     node.on("close", function (removed, done) {

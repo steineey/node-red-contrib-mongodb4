@@ -1,55 +1,104 @@
 <script type="text/javascript">
-	RED.nodes.registerType("mongodb4-client", {
-		category: "config",
-		defaults: {
-			name: { value: "" },
-			protocol: { value: "mongodb", required: true },
-			hostname: { value: "", required: true },
-			port: { value: "" },
-			dbName: { value: "", required: true },
-			authSource: { value: "" },
-			authMechanism: { value: "SCRAM-SHA-256" },
-			tls: { value: false },
-			tlsCAFile: { value: "" },
-			tlsInsecure: { value: false },
-      advanced: {value: ""}
-		},
-		credentials: {
-			username: { value: "", type: "text" },
-			password: { value: "", type: "password" },
-		},
-		label: function () {
-			return this.name || `${this.hostname} ${this.dbName}`;
-		},
-	});
+  RED.nodes.registerType("mongodb4-client", {
+    category: "config",
+    defaults: {
+      name: { value: "" },
+      protocol: { value: "mongodb", required: true },
+      hostname: { value: "" },
+      port: { value: "" },
+      dbName: { value: "", required: true },
+      authSource: { value: "" },
+      authMechanism: { value: "SCRAM-SHA-256" },
+      tls: { value: false },
+      tlsCAFile: { value: "" },
+      tlsInsecure: { value: false },
+      uri: { value: "" },
+      advanced: { value: "" },
+      uriTabActive: { value: "tab-uri-simple" },
+    },
+    credentials: {
+      username: { value: "", type: "text" },
+      password: { value: "", type: "password" },
+    },
+    label: function () {
+      return this.name || `${this.hostname} ${this.dbName}`;
+    },
+    oneditprepare: function () {
+      // uri tabs
+      this.uriTabs = RED.tabs.create({
+        id: "tabs",
+        onchange: function (tab) {
+          $("#tabs-content").children().hide();
+          $("#" + tab.id).show();
+        },
+      });
+
+      this.uriTabs.addTab({
+        id: "tab-uri-simple",
+        label: "Simple Connection URI",
+      });
+
+      this.uriTabs.addTab({
+        id: "tab-uri-advanced",
+        label: "Advanced Connection URI",
+      });
+
+      if (this.uriTabActive) {
+        this.uriTabs.activateTab(this.uriTabActive);
+      }
+    },
+    oneditsave: function () {
+      this.uriTabActive = this.uriTabs.listTabs()[this.uriTabs.activeIndex()];
+    },
+  });
 </script>
 
 <script type="text/html" data-template-name="mongodb4-client">
   <div class="form-row">
-    <label for="node-config-input-protocol"
-      ><i class="fa fa-envelope-o"></i> Protocol</label
-    >
-    <select id="node-config-input-protocol">
-      <option value="mongodb">mongodb</option>
-      <option value="mongodb+srv">mongodb+srv</option>
-    </select>
+    <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-config-input-name" />
   </div>
-  <div class="form-row">
-    <label for="node-config-input-hostname"
-      ><i class="fa fa-server"></i> Hostname</label
-    >
-    <input type="text" id="node-config-input-hostname" />
+  <div class="form-row tabs-row">
+    <ul style="min-width: 600px; margin-bottom: 20px;" id="tabs"></ul>
   </div>
-  <div class="form-row">
-    <label for="node-config-input-port"><i class="fa fa-plug"></i> Port</label>
-    <input type="text" id="node-config-input-port" placeholder="27017" />
+  <div id="tabs-content">
+    <div id="tab-uri-simple" style="display:none">
+      <div class="form-row">
+        <label for="node-config-input-protocol"
+          ><i class="fa fa-envelope-o"></i> Protocol</label
+        >
+        <select id="node-config-input-protocol">
+          <option value="mongodb">mongodb</option>
+          <option value="mongodb+srv">mongodb+srv</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="node-config-input-hostname"
+          ><i class="fa fa-server"></i> Hostname</label
+        >
+        <input type="text" id="node-config-input-hostname" placeholder="localhost" />
+      </div>
+      <div class="form-row">
+        <label for="node-config-input-port"
+          ><i class="fa fa-plug"></i> Port</label
+        >
+        <input type="text" id="node-config-input-port" placeholder="27017"/>
+      </div>
+    </div>
+    <div id="tab-uri-advanced" style="display:none">
+      <div class="form-row">
+        <label for="node-config-input-uri"
+          ><i class="fa fa-bolt"></i> URI</label
+        >
+        <input
+          type="text"
+          id="node-config-input-uri"
+          placeholder="mongodb://localhost:27017"
+        />
+      </div>
+    </div>
   </div>
-  <div class="form-row">
-    <label for="node-config-input-dbName"
-      ><i class="fa fa-database"></i> Database</label
-    >
-    <input type="text" id="node-config-input-dbName" placeholder="my-database" />
-  </div>
+
   <div class="form-row">
     <label for="node-config-input-username"
       ><i class="fa fa-user"></i> Username</label
@@ -66,7 +115,7 @@
     <label for="node-config-input-authSource"
       ><i class="fa fa-id-card-o"></i> AuthSource</label
     >
-    <input type="text" id="node-config-input-authSource" placeholder="my-database" />
+    <input type="text" id="node-config-input-authSource" />
   </div>
   <div class="form-row">
     <label for="node-config-input-authMechanism"
@@ -88,7 +137,11 @@
     <label for="node-config-input-tlsCAFile"
       ><i class="fa fa-certificate"></i>TLS CA-File</label
     >
-    <input type="text" id="node-config-input-tlsCAFile" placeholder="/data/cert/ca.cer" />
+    <input
+      type="text"
+      id="node-config-input-tlsCAFile"
+      placeholder="/data/cert/ca.cer"
+    />
   </div>
   <div class="form-row">
     <label for="node-config-input-tlsInsecure"
@@ -96,14 +149,18 @@
     >
     <input type="checkbox" id="node-config-input-tlsInsecure" />
   </div>
+
   <div class="form-row">
-    <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input type="text" id="node-config-input-name" />
-  </div>
-  <h4>Advanced</h4>
-  <div class="form-row">
-    <label for="node-config-input-advanced"><i class="fa fa-cogs"></i> Options</label>
+    <label for="node-config-input-advanced"
+      ><i class="fa fa-cogs"></i> Options</label
+    >
     <input type="text" id="node-config-input-advanced" placeholder="{}" />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-dbName"
+      ><i class="fa fa-database"></i> Database</label
+    >
+    <input type="text" id="node-config-input-dbName" />
   </div>
 </script>
 
@@ -111,53 +168,64 @@
 Configuration node for MongoDB connection config.
 Node will create a MongoDB Client.
 
-### Protocol
-`mongodb` or `mongodb+srv`
+### Simple Connection URI
 
-### Hostname
-Hostname / IP to connect to MongoDB
+: Protocol (string) : `mongodb` or `mongodb+srv`
 
-### Port
-Optional port number. In most cases `27017`.
+: Hostname (string) : Hostname / IP to connect to MongoDB
+
+: Port (number) : Optional port number. In most cases `27017`.
+
+### Advanced Connection URI
+
+: URI (string) : Define your own connection string in URI format.
+[Read the docs: Connection String in URI Format](https://docs.mongodb.com/manual/reference/connection-string/)
+
+### Authentication (optional)
+
+: Username (string) : Username for authentication.
+
+: Password (string) : Password for authentication.
+
+: AuthSource (string) : Specify the database name associated with the user’s credentials.
+
+: AuthMech (string) : Specify the authentication mechanism that MongoDB will use to authenticate the connection.
+
+### TLS Encryption (optional)
+
+: TLS CA-File (path) : Specifies the location of a local .pem file that contains the root certificate chain from the Certificate Authority. This file is used to validate the certificate presented by the mongod/mongos instance.
+
+: TLS-Insecure (bool) : Disables various certificate validations. THIS IS REALLY NOT SECURE.
+
+### More Options
+
+: Options (JSON) : MongoDB Driver 4 MongoClient supports more options. Feel free to overwrite all client options with your own.
+[Read the docs: MongoClientOptions](https://mongodb.github.io/node-mongodb-native/4.2/interfaces/MongoClientOptions.html)
 
 ### Database
-A MongoDB database name.
 
-### AuthSource
-Specify the database name associated with the user’s credentials.
+: Database (string) : A MongoDB database name is required.
 
-### AuthMech
-Specify the authentication mechanism that MongoDB will use to authenticate the connection.
-
-### TLS CA-File
-Specifies the location of a local .pem file that contains the root certificate chain from the Certificate Authority. This file is used to validate the certificate presented by the mongod/mongos instance.
-
-### TLS-Insecure
-Disables various certificate validations. THIS IS REALLY NOT SECURE.
-
-### Advanced
-MongoDB Driver 4 MongoClient supports more options. Feel free to overwrite all client options with your own.
-[MongoClientOptions](https://mongodb.github.io/node-mongodb-native/4.2/interfaces/MongoClientOptions.html)
 </script>
 
 <script type="text/javascript">
-	RED.nodes.registerType("mongodb4", {
-		category: "storage-input",
-		color: "#3FA037",
-		defaults: {
-			clientNode: { type: "mongodb4-client" },
-			collection: { value: "" },
-			operation: { value: "" },
-			output: { value: "toArray" },
-			name: { value: "" },
-		},
-		inputs: 1,
-		outputs: 1,
-		icon: "db.svg",
-		label: function () {
-			return this.name || this.operation || "mongodb4";
-		},
-	});
+  RED.nodes.registerType("mongodb4", {
+    category: "storage-input",
+    color: "#3FA037",
+    defaults: {
+      clientNode: { type: "mongodb4-client" },
+      collection: { value: "" },
+      operation: { value: "" },
+      output: { value: "toArray" },
+      name: { value: "" },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: "db.svg",
+    label: function () {
+      return this.name || this.operation || "mongodb4";
+    },
+  });
 </script>
 
 <script type="text/html" data-template-name="mongodb4">
@@ -205,9 +273,9 @@ Execute MongoDB collection operations with this node.
 
 : Collection | msg.collection (string) : MongoDB database collection.
 
-: Operation | msg.operation (string) : A MongoDB Driver 4 collection CRUD operation for example `find`, `findOne`, `insertOne`, `updateOne`, `aggregate` and many more. 
+: Operation | msg.operation (string) : A MongoDB Driver 4 collection CRUD operation for example `find`, `findOne`, `insertOne`, `updateOne`, `aggregate` and many more.
 
-: msg.payload (array) : Pass the CRUD operation arguments as message payload. Message payload has to be array type to pass multiple function arguments to driver operation. 
+: msg.payload (array) : Pass the CRUD operation arguments as message payload. Message payload has to be array type to pass multiple function arguments to driver operation.
 Example: `msg.payload = [{_id: '123'},{fields: {...}}]`. The payload array will be passed as function arguments for the MongoDB driver collection operation, like so: `collection.find({_id: '123'}, {fields: {...}})`
 
 : Output : For `find` and `aggregate` operation. Choose `toArray` or `forEach` output type.
@@ -216,6 +284,7 @@ More information here:
 [Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
 
 ### Output
+
 : msg.payload (any) : The node will output the database driver response as message payload. The operations `aggregate` and `find` can output with `toArray` or `forEach`.
 
 ### More information

@@ -29,34 +29,43 @@ Import the example flow to get a quick introduction how to use this node. \
 Configuration node for MongoDB connection config.
 This node will create a MongoDB client, with a connection pool for operation nodes.
 
-### Options
-#### Protocol
-`mongodb` or `mongodb+srv`
+### Simple Connection URI
 
-#### Hostname
-Hostname / IP to connect to MongoDB
+: Protocol (string) : `mongodb` or `mongodb+srv`
 
-#### Port
-Optional port number. In most cases `27017`.
+: Hostname (string) : Hostname / IP to connect to MongoDB
 
-#### Database
-A MongoDB database name.
+: Port (number) : Optional port number. In most cases `27017`.
 
-#### AuthSource
-Specify the database name associated with the user’s credentials.
+### Advanced Connection URI
 
-#### AuthMech
-Specify the authentication mechanism that MongoDB will use to authenticate the connection.
+: URI (string) : This will overwrite `Protocol`, `Hostname` and `Port` with your own connection string.
+[Read the docs: Connection String in URI Format](https://docs.mongodb.com/manual/reference/connection-string/)
 
-#### TLS CA-File
-Specifies the location of a local .pem file that contains the root certificate chain from the Certificate Authority. This file is used to validate the certificate presented by the mongod/mongos instance.
+### Authentication
 
-#### TLS-Insecure
-Disables various certificate validations. THIS IS REALLY NOT SECURE.
+: Username (string) : Username for authentication.
 
-#### Advanced Options
-MongoDB Driver 4 MongoClient supports more options. Feel free to overwrite all client options with your own JSON-Config-String.
-[MongoClientOptions](https://mongodb.github.io/node-mongodb-native/4.2/interfaces/MongoClientOptions.html)
+: Password (string) : Password for authentication.
+
+: AuthSource (string) : Specify the database name associated with the user’s credentials.
+
+: AuthMech (string) : Specify the authentication mechanism that MongoDB will use to authenticate the connection.
+
+### TLS Encryption
+
+: TLS CA-File (path) : Specifies the location of a local .pem file that contains the root certificate chain from the Certificate Authority. This file is used to validate the certificate presented by the mongod/mongos instance.
+
+: TLS-Insecure (bool) : Disables various certificate validations. THIS IS REALLY NOT SECURE.
+
+### More Options
+
+: Options (JSON) : MongoDB Driver 4 MongoClient supports more options. Feel free to overwrite all client options with your own.
+[Read the docs: MongoClientOptions](https://mongodb.github.io/node-mongodb-native/4.2/interfaces/MongoClientOptions.html)
+
+### Database
+
+: Database (string) : A MongoDB database name is required.
 
 ### Connection Pools
 Each configuration node has his own connection pool with a default max poolsize of 100 connection at a given time. More parallel connections / operations will be queued and processed synchronous. In this scenario slow operations will delay fast operations. You can create more separat connection pools with more configuration nodes. [More Information](https://docs.mongodb.com/drivers/node/current/faq/#how-can-i-prevent-a-slow-operation-from-delaying-other-operations-)
