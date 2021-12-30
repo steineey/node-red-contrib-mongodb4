@@ -226,7 +226,7 @@ module.exports = function (RED) {
       // connect async
       node.n.connect = connect();
     } else {
-      node.status({ fill: "red", shape: "ring", text: "error" });
+      node.status({ fill: "red", shape: "ring", text: "config error" });
       node.error("Configuration node error.");
     }
 
