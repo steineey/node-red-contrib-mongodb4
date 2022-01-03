@@ -8,7 +8,7 @@
       port: { value: "" },
       dbName: { value: "", required: true },
       authSource: { value: "" },
-      authMechanism: { value: "SCRAM-SHA-256" },
+      authMechanism: { value: "DEFAULT" },
       tls: { value: false },
       tlsCAFile: { value: "" },
       tlsInsecure: { value: false },
@@ -112,20 +112,24 @@
     <input type="password" id="node-config-input-password" />
   </div>
   <div class="form-row">
-    <label for="node-config-input-authSource"
-      ><i class="fa fa-id-card-o"></i> AuthSource</label
-    >
-    <input type="text" id="node-config-input-authSource" />
-  </div>
-  <div class="form-row">
     <label for="node-config-input-authMechanism"
       ><i class="fa fa-key"></i> AuthMech</label
     >
     <select id="node-config-input-authMechanism">
+      <option value="DEFAULT">DEFAULT</option>
       <option value="SCRAM-SHA-256">SCRAM-SHA-256</option>
       <option value="SCRAM-SHA-1">SCRAM-SHA-1</option>
       <option value="MONGODB-CR">MONGODB-CR</option>
+      <option value="MONGODB-AWS">MONGODB-AWS</option>
+      <option value="PLAIN">PLAIN</option>
+      <option value="GSSAPI">GSSAPI</option>
     </select>
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-authSource"
+      ><i class="fa fa-id-card-o"></i> AuthSource</label
+    >
+    <input type="text" id="node-config-input-authSource" />
   </div>
   <div class="form-row">
     <label for="node-config-input-tls"
@@ -187,9 +191,9 @@ Node will create a MongoDB Client.
 
 : Password (string) : Password for authentication.
 
-: AuthSource (string) : Specify the database name associated with the user’s credentials.
+: AuthMech (string) : Specify the authentication mechanism that MongoDB will use to authenticate the connection. This will only be used in combination with username and password.
 
-: AuthMech (string) : Specify the authentication mechanism that MongoDB will use to authenticate the connection.
+: AuthSource (string) : Specify the database name associated with the user’s credentials.
 
 ### TLS Encryption (optional)
 

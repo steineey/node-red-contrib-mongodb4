@@ -29,25 +29,25 @@ module.exports = function (RED) {
           node.n.uri = `${n.protocol}://${n.hostname}`;
         }
       } else {
-        throw new Error("Connection URI undefined. Define a hostname.");
+        throw new Error("Define a hostname for MongoDB connection.");
       }
 
-      // mongo client options
+      // mongo client authentication
       if (node.credentials.username || node.credentials.password) {
         node.n.options.auth = {
           username: node.credentials.username,
           password: node.credentials.password,
         };
-        if (n.authSource) {
-          node.n.options.authSource = n.authSource;
-        }
-        if (n.authMechanism) {
-          node.n.options.authMechanism = n.authMechanism;
-        }
+        node.n.options.authMechanism = n.authMechanism;
+      }
+
+      // authentication source
+      if (n.authSource) {
+        node.n.options.authSource = n.authSource;
       }
 
       // tls support
-      node.n.options.tls = n.tls;
+      if(n.tls) node.n.options.tls = n.tls;
       if (n.tlsCAFile) node.n.options.tlsCAFile = n.tlsCAFile;
       if (n.tlsInsecure) node.n.options.tlsInsecure = n.tlsInsecure;
 
