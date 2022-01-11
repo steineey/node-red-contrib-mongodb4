@@ -21,9 +21,9 @@ Navigate to your .node-red directory - typically `~/.node-red`.
 
 ## Usage Example
 Import the example flow to get a quick introduction how to use this node. \
-[flow.json](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/example/flow.json) \
+[flow.json](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/flow.json) \
 \
-![flow-image](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/example/example-flow.png)
+![flow-image](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/example-flow.png)
 
 ## The Configuration Node
 Configuration node for MongoDB connection config.
