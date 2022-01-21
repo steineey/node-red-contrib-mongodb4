@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-mongodb4",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "A powerful node-red node for mongodb driver 4",
   "keywords": [
     "node-red",

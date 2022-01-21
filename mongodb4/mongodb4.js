@@ -101,7 +101,17 @@ module.exports = function (RED) {
       output: n.output,
     };
 
-    async function handleIn(msg, send, done) {
+    node.n.handleError = function(err, msg, done) {
+      if (done) {
+          // Node-RED 1.0 compatible
+          done(err.message || err);
+      } else {
+          // Node-RED 0.x compatible
+          node.error(err.message || err, msg);
+      }
+    }
+
+    node.n.handleInput = async function(msg, send, done) {
       try {
         // get collection
         var c = msg.collection || node.n.collection;
@@ -154,19 +164,22 @@ module.exports = function (RED) {
           shape: "dot",
           text: `success ${node.n.counter.success}, error ${node.n.counter.error}`,
         });
+
+        if (done) {
+          done();
+        }
+
       } catch (err) {
+
+        // operation error handling
         node.n.counter.error++;
         node.status({
           fill: "red",
           shape: "ring",
           text: "operation error",
         });
-        node.error(err.message);
-      }
-
-      if (done) {
-        done();
-      }
+        node.n.handleError(err, msg, done);
+      }    
     }
 
     node.on("input", function (msg, send, done) {
@@ -178,28 +191,22 @@ module.exports = function (RED) {
 
       if (node.n.database) {
         // continue with operation
-        handleIn(msg, send, done);
-      } else if (node.n.connect) {
+        node.n.handleInput(msg, send, done);
+      } else if (node.n.connecting) {
         // wait for connection
-        node.n.connect.then((success) => {
+        node.n.connecting.then((success) => {
           if (success) {
-            handleIn(msg, send, done);
+            node.n.handleInput(msg, send, done);
           } else {
-            node.error("Message dropped. Connection error.");
-            if (done) {
-              done();
-            }
+            node.n.handleError("Connection error.", msg, done);
           }
         });
       } else {
-        node.error("Message dropped. Not connected.");
-        if (done) {
-          done();
-        }
+        node.n.handleError("Not connected.", msg, done);
       }
     });
 
-    async function connect() {
+    node.n.connect = async function() {
       node.status({ fill: "yellow", shape: "ring", text: "connecting" });
       try {
         node.n.connection = await node.n.clientNode.connect();
@@ -210,24 +217,24 @@ module.exports = function (RED) {
         if (!ping || ping.ok !== 1) {
           throw new Error("Ping database server failed.");
         }
-        node.n.connect = null;
+        node.n.connecting = null;
         node.status({ fill: "green", shape: "dot", text: "connected" });
         return true;
       } catch (err) {
         // error on connection
-        node.n.connect = null;
+        node.n.connecting = null;
         node.status({ fill: "red", shape: "ring", text: "connection error" });
-        node.error(err.message);
+        node.n.handleError(err, null, null);
         return false;
       }
     }
 
     if (node.n.clientNode && node.n.clientNode.connect) {
       // connect async
-      node.n.connect = connect();
+      node.n.connecting = node.n.connect();
     } else {
       node.status({ fill: "red", shape: "ring", text: "config error" });
-      node.error("Configuration node error.");
+      node.n.handleError("Configuration node error.", null, null);
     }
 
     node.on("close", function (removed, done) {
