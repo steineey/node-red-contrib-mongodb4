@@ -1,5 +1,6 @@
 module.exports = function (RED) {
-  var MongoClient = require("mongodb").MongoClient;
+
+  var { MongoClient, ObjectId } = require("mongodb");
 
   function ClientNode(n) {
     RED.nodes.createNode(this, n);
@@ -7,19 +8,17 @@ module.exports = function (RED) {
 
     // node data
     node.n = {
-      // set database connection url
-      uri: null,
-      // database name
-      dbName: n.dbName,
-      options: {},
-      client: null,
+      uri: null, // mongodb connection uri
+      dbName: n.dbName, // database name
+      options: {}, // client options
+      client: null, // client instance
     };
 
     try {
-      if (n.uriTabActive === 'tab-uri-advanced') {
-        if(n.uri) {
+      if (n.uriTabActive === "tab-uri-advanced") {
+        if (n.uri) {
           node.n.uri = n.uri;
-        }else{
+        } else {
           throw new Error("Connection URI undefined.");
         }
       } else if (n.protocol && n.hostname) {
@@ -46,8 +45,8 @@ module.exports = function (RED) {
         node.n.options.authSource = n.authSource;
       }
 
-      // tls support
-      if(n.tls) node.n.options.tls = n.tls;
+      // tls settings
+      if (n.tls) node.n.options.tls = n.tls;
       if (n.tlsCAFile) node.n.options.tlsCAFile = n.tlsCAFile;
       if (n.tlsInsecure) node.n.options.tlsInsecure = n.tlsInsecure;
 
@@ -99,28 +98,29 @@ module.exports = function (RED) {
       collection: n.collection,
       operation: n.operation,
       output: n.output,
+      handleDocId: n.handleDocId
     };
 
-    node.n.handleError = function(err, msg, done) {
+    node.n.handleError = function (err, msg, done) {
       if (done) {
-          // Node-RED 1.0 compatible
-          done(err.message || err);
+        // Node-RED 1.0 compatible
+        done(err.message || err);
       } else {
-          // Node-RED 0.x compatible
-          node.error(err.message || err, msg);
+        // Node-RED 0.x compatible
+        node.error(err.message || err, msg);
       }
-    }
+    };
 
-    node.n.handleInput = async function(msg, send, done) {
+    node.n.handleInput = async function (msg, send, done) {
       try {
-        // get collection
+        // get mongodb collection
         var c = msg.collection || node.n.collection;
         if (!c) {
           throw new Error("Database collection undefined.");
         }
         var collection = node.n.database.collection(c);
 
-        // get operation
+        // get mongodb operation
         var operation = msg.operation || node.n.operation;
         if (!operation) {
           throw new Error("Collection operation undefined.");
@@ -129,15 +129,23 @@ module.exports = function (RED) {
           throw new Error(`Unsupported collection operation: "${operation}"`);
         }
 
-        // execute operation
+        
         var request = null;
         if (Array.isArray(msg.payload)) {
+
+          // set replace mongodb string object id 
+          if(node.n.handleDocId){
+            handleDocumentId(msg.payload, false);
+          }
+          
+          // execute mongodb operation
           request = collection[operation](...msg.payload);
+
         } else {
           throw new Error("Payload is missing or not array type.");
         }
 
-        // continue with response
+        // result handling
         if (operation === "aggregate" || operation === "find") {
           switch (node.n.output) {
             case "toArray":
@@ -168,9 +176,7 @@ module.exports = function (RED) {
         if (done) {
           done();
         }
-
       } catch (err) {
-
         // operation error handling
         node.n.counter.error++;
         node.status({
@@ -179,8 +185,8 @@ module.exports = function (RED) {
           text: "operation error",
         });
         node.n.handleError(err, msg, done);
-      }    
-    }
+      }
+    };
 
     node.on("input", function (msg, send, done) {
       send =
@@ -206,7 +212,7 @@ module.exports = function (RED) {
       }
     });
 
-    node.n.connect = async function() {
+    node.n.connect = async function () {
       node.status({ fill: "yellow", shape: "ring", text: "connecting" });
       try {
         node.n.connection = await node.n.clientNode.connect();
@@ -227,7 +233,7 @@ module.exports = function (RED) {
         node.n.handleError(err, null, null);
         return false;
       }
-    }
+    };
 
     if (node.n.clientNode && node.n.clientNode.connect) {
       // connect async
@@ -245,6 +251,22 @@ module.exports = function (RED) {
         done();
       }
     });
+  }
+
+  function handleDocumentId(queryObj, keyWasId) {
+    if(typeof queryObj === 'object'){
+      for(var [key, value] of Object.entries(queryObj)){
+        if(( key === '_id' || keyWasId ) && typeof value === 'string' && ObjectId.isValid(value)) {
+          console.log('replace object id', key, value)
+          queryObj[key] = ObjectId(value);
+        } else if(typeof value === 'object'){
+          if(key === '_id') {
+            keyWasId = true;
+          }
+          handleDocumentId(value, keyWasId);
+        }
+      }
+    }
   }
 
   RED.nodes.registerType("mongodb4", OperationNode);
