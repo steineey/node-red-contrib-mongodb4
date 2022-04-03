@@ -18,7 +18,7 @@
     "test": "mocha test/mongodb_spec.js"
   },
   "dependencies": {
-    "mongodb": "^4.2.1"
+    "mongodb": "^4.4.1"
   },
   "node-red": {
     "nodes": {
