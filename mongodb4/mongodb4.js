@@ -1,5 +1,4 @@
 module.exports = function (RED) {
-
   var { MongoClient, ObjectId } = require("mongodb");
 
   function ClientNode(n) {
@@ -98,7 +97,6 @@ module.exports = function (RED) {
       collection: n.collection,
       operation: n.operation,
       output: n.output,
-      handleDocId: n.handleDocId
     };
 
     node.n.handleError = function (err, msg, done) {
@@ -129,23 +127,18 @@ module.exports = function (RED) {
           throw new Error(`Unsupported collection operation: "${operation}"`);
         }
 
-        
         var request = null;
         if (Array.isArray(msg.payload)) {
+          // set replace mongodb string object id
+          handleDocumentId(msg.payload, false);
 
-          // set replace mongodb string object id 
-          if(node.n.handleDocId){
-            handleDocumentId(msg.payload, false);
-          }
-          
           // execute mongodb operation
           request = collection[operation](...msg.payload);
-
         } else {
           throw new Error("Payload is missing or not array type.");
         }
 
-        // result handling
+        // output handling on aggregate or find operation
         if (operation === "aggregate" || operation === "find") {
           switch (node.n.output) {
             case "toArray":
@@ -253,14 +246,19 @@ module.exports = function (RED) {
     });
   }
 
+  // handle document _id which was set as string type by user
+  // mongodb driver expects ObjectId as document _id
   function handleDocumentId(queryObj, keyWasId) {
-    if(typeof queryObj === 'object'){
-      for(var [key, value] of Object.entries(queryObj)){
-        if(( key === '_id' || keyWasId ) && typeof value === 'string' && ObjectId.isValid(value)) {
-          console.log('replace object id', key, value)
+    if (typeof queryObj === "object") {
+      for (var [key, value] of Object.entries(queryObj)) {
+        if (
+          (key === "_id" || keyWasId) &&
+          typeof value === "string" &&
+          ObjectId.isValid(value)
+        ) {
           queryObj[key] = ObjectId(value);
-        } else if(typeof value === 'object'){
-          if(key === '_id') {
+        } else if (typeof value === "object") {
+          if (key === "_id") {
             keyWasId = true;
           }
           handleDocumentId(value, keyWasId);

@@ -26,7 +26,6 @@ Import the example flow to get a quick introduction how to use this node. \
 ![flow-image](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/example-1-flow.png) \
 \
 ![flow-image](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/example-1-config.png) \
-\
 
 ## The Configuration Node
 Configuration node for MongoDB connection config.
