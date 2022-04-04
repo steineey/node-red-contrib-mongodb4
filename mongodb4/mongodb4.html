@@ -280,12 +280,22 @@ Execute MongoDB collection operations with this node.
 : Operation | msg.operation (string) : A MongoDB Driver 4 collection CRUD operation for example `find`, `findOne`, `insertOne`, `updateOne`, `aggregate` and many more.
 
 : msg.payload (array) : Pass the CRUD operation arguments as message payload. Message payload has to be array type to pass multiple function arguments to driver operation.
-Example: `msg.payload = [{_id: '123'},{fields: {...}}]`. The payload array will be passed as function arguments for the MongoDB driver collection operation, like so: `collection.find({_id: '123'}, {fields: {...}})`
+Example: `msg.payload = [{name: 'marina'},{fields: {...}}]`. The payload array will be passed as function arguments for the MongoDB driver collection operation, like so: `collection.find({name: 'marina'}, {fields: {...}})`
 
 : Output (string) : For `find` and `aggregate` operation. Choose `toArray` or `forEach` output type.
 
 More information here:
 [Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
+
+### Use default Document _id
+
+The default MongoDB document identifier is of type ObjectId. This means the native driver expects query arguments like:
+`msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`
+No panic the operation node will handle this for you. You can pass a document id as string. If this string is a valid ObjectId it will be translated into a real ObjectId before executed by the native driver.
+So this will work:
+`msg.payload = [{_id: "624b527d08e23628e99eb963"}]`
+or this will also work:
+`msg.payload = [{_id: {$in: ["624b527d08e23628e99eb963"]}}]`
 
 ### Output
 
