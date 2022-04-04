@@ -3,6 +3,7 @@ var helper = require("node-red-node-test-helper");
 var mongodbNode = require("../mongodb4/mongodb4.js");
 var uid = require("uuid").v4();
 var testConfig = require("./config.json");
+const { ObjectId } = require("mongodb");
 
 helper.init(require.resolve("node-red"));
 
@@ -154,15 +155,64 @@ describe("testing mongodb4 nodes", function () {
         var counter = 0;
 
         helperNode.on("input", function (msg) {
-          counter ++;
+          counter++;
           try {
             msg.should.have.property("payload");
             msg.payload.should.have.property("acknowledged", true);
-            if(counter === 2) {
+            if (counter === 2) {
               done();
             }
           } catch (err) {
             done(err);
+          }
+        });
+
+        operationNode.on("call:error", (call) => {
+          done(new Error(call.firstArg));
+        });
+      }
+    );
+  });
+
+  it("implicit ObjectId", function (done) {
+    helper.load(
+      mongodbNode,
+      testFlow,
+      { "config-node": testConfig.credentials },
+      function () {
+        var helperNode = helper.getNode("helper-node");
+        var operationNode = helper.getNode("operation-node");
+
+        // step 1
+        operationNode.receive({
+          payload: [{ _id: "624b3c625a145193099962d1" }],
+          collection: testConfig.collection,
+          operation: "deleteMany",
+        });
+
+        helperNode.on("input", function (msg) {
+          if (msg.operation === "deleteMany") {
+            // after delete many
+            operationNode.receive({
+              payload: [
+                { _id: ObjectId("624b3c625a145193099962d1"), success: true },
+              ],
+              collection: testConfig.collection,
+              operation: "insertOne",
+            });
+            return;
+          } else if (msg.operation === "insertOne") {
+            // after insertOne
+            operationNode.receive({
+              payload: [{ _id: "624b3c625a145193099962d1" }],
+              collection: testConfig.collection,
+              operation: "findOne",
+            });
+            return;
+          } else if (msg.operation === "findOne") {
+            msg.should.have.property("payload");
+            msg.payload.should.have.property("success");
+            done();
           }
         });
 
