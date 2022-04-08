@@ -1,6 +1,6 @@
 var should = require("should");
 var helper = require("node-red-node-test-helper");
-var mongodbNode = require("../mongodb4/mongodb4.js");
+var mongodbNode = require("../src/mongodb4.js");
 var uid = require("uuid").v4();
 var testConfig = require("./config.json");
 const { ObjectId } = require("mongodb");
