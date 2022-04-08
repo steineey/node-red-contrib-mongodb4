@@ -25,7 +25,7 @@ Import the example flow to get a quick introduction how to use this node. \
 \
 ![flow-image](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/example-1-flow.png) \
 \
-![flow-image](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/example-1-config.png) \
+![flow-image](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/example-1-config.png)
 
 ## The Configuration Node
 Configuration node for MongoDB connection config.
@@ -98,18 +98,19 @@ Message payload has to be array type to pass multiple function arguments to driv
 Example: `msg.payload = [{name: 'marina'},{fields: {...}}]`.
 The payload array will be passed as function arguments for the MongoDB driver collection operation, like so: `collection.find({name: 'marina'}, {fields: {...}})`
 
-### Use default Document _id
+More information here:
+[Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
 
-The default MongoDB document identifier is of type ObjectId. This means the native driver expects query arguments like:
+
+### How to query by document _id
+
+The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like:
 `msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`
-No panic the operation node will handle this for you. You can pass a document id as string. If this string is a valid ObjectId it will be translated into a real ObjectId before executed by the native driver.
+No panic the operation node will handle this for you. You can pass a document id as string type. If this string is a valid ObjectId, it will be translated into a real ObjectId before executed by the native driver.
 So this will work:
 `msg.payload = [{_id: "624b527d08e23628e99eb963"}]`
 or this will also work:
 `msg.payload = [{_id: {$in: ["624b527d08e23628e99eb963"]}}]`
-
-More information here:
-[Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
 
 ### Payload Output
 
