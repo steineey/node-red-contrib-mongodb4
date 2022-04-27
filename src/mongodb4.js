@@ -112,31 +112,40 @@ module.exports = function (RED) {
     node.n.handleInput = async function (msg, send, done) {
       try {
         // get mongodb collection
-        var c = msg.collection || node.n.collection;
-        if (!c) {
-          throw new Error("Database collection undefined.");
+        var cn = msg.collection || node.n.collection;
+        if (!cn) {
+          throw new Error("Collection name undefined.");
         }
-        var collection = node.n.database.collection(c);
+
+        // get mongodb collection
+        var collection = node.n.database.collection(cn);
 
         // get mongodb operation
         var operation = msg.operation || node.n.operation;
         if (!operation) {
           throw new Error("Collection operation undefined.");
         }
+
+        // check if mongodb collection has operation
         if (typeof collection[operation] !== "function") {
           throw new Error(`Unsupported collection operation: "${operation}"`);
         }
 
-        var request = null;
-        if (Array.isArray(msg.payload)) {
-          // set replace mongodb string object id
-          handleDocumentId(msg.payload, false);
-
-          // execute mongodb operation
-          request = collection[operation](...msg.payload);
-        } else {
+        // payload has to be array type
+        if (! Array.isArray(msg.payload)) {
           throw new Error("Payload is missing or not array type.");
+        } 
+
+        try {
+          // handle mongodb document id
+          handleDocumentId(msg.payload, false);
+        }catch(warn){
+          // on error set warning and continue
+          console.warn('mongodb4-operation: document _id fix failed; ' + warn.message);
         }
+
+        // execute mongodb operation
+        var request = collection[operation](...msg.payload);
 
         // output handling on aggregate or find operation
         if (operation === "aggregate" || operation === "find") {
@@ -249,7 +258,7 @@ module.exports = function (RED) {
   // handle document _id which was set as string type by user
   // mongodb driver expects ObjectId as document _id
   function handleDocumentId(queryObj, keyWasId) {
-    if (typeof queryObj === "object") {
+    if (queryObj && typeof queryObj === "object") {
       for (var [key, value] of Object.entries(queryObj)) {
         if (
           (key === "_id" || keyWasId) &&
