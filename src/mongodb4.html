@@ -76,13 +76,17 @@
         <label for="node-config-input-hostname"
           ><i class="fa fa-server"></i> Hostname</label
         >
-        <input type="text" id="node-config-input-hostname" placeholder="localhost" />
+        <input
+          type="text"
+          id="node-config-input-hostname"
+          placeholder="localhost"
+        />
       </div>
       <div class="form-row">
         <label for="node-config-input-port"
           ><i class="fa fa-plug"></i> Port</label
         >
-        <input type="text" id="node-config-input-port" placeholder="27017"/>
+        <input type="text" id="node-config-input-port" placeholder="27017" />
       </div>
     </div>
     <div id="tab-uri-advanced" style="display:none">
@@ -100,6 +104,27 @@
   </div>
 
   <div class="form-row">
+    <label for="node-config-input-authMechanism"
+      ><i class="fa fa-key"></i> AuthMech</label
+    >
+    <select id="node-config-input-authMechanism">
+      <option value="DEFAULT">DEFAULT</option>
+      <option value="SCRAM-SHA-256">SCRAM-SHA-256</option>
+      <option value="SCRAM-SHA-1">SCRAM-SHA-1</option>
+      <option value="MONGODB-CR">MONGODB-CR</option>
+      <option value="MONGODB-AWS">MONGODB-AWS</option>
+      <option value="MONGODB-X509">MONGODB-X509</option>
+      <option value="PLAIN">PLAIN</option>
+      <option value="GSSAPI">GSSAPI</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-authSource"
+      ><i class="fa fa-id-card-o"></i> AuthSource</label
+    >
+    <input type="text" id="node-config-input-authSource" />
+  </div>
+  <div class="form-row">
     <label for="node-config-input-username"
       ><i class="fa fa-user"></i> Username</label
     >
@@ -112,26 +137,6 @@
     <input type="password" id="node-config-input-password" />
   </div>
   <div class="form-row">
-    <label for="node-config-input-authMechanism"
-      ><i class="fa fa-key"></i> AuthMech</label
-    >
-    <select id="node-config-input-authMechanism">
-      <option value="DEFAULT">DEFAULT</option>
-      <option value="SCRAM-SHA-256">SCRAM-SHA-256</option>
-      <option value="SCRAM-SHA-1">SCRAM-SHA-1</option>
-      <option value="MONGODB-CR">MONGODB-CR</option>
-      <option value="MONGODB-AWS">MONGODB-AWS</option>
-      <option value="PLAIN">PLAIN</option>
-      <option value="GSSAPI">GSSAPI</option>
-    </select>
-  </div>
-  <div class="form-row">
-    <label for="node-config-input-authSource"
-      ><i class="fa fa-id-card-o"></i> AuthSource</label
-    >
-    <input type="text" id="node-config-input-authSource" />
-  </div>
-  <div class="form-row">
     <label for="node-config-input-tls"
       ><i class="fa fa-handshake-o"></i> TLS</label
     >
@@ -139,12 +144,31 @@
   </div>
   <div class="form-row">
     <label for="node-config-input-tlsCAFile"
-      ><i class="fa fa-certificate"></i>TLS CA-File</label
+      ><i class="fa fa-certificate"></i>TLS CA File</label
     >
     <input
       type="text"
       id="node-config-input-tlsCAFile"
-      placeholder="/data/cert/ca.cer"
+      placeholder="<path to CA certificate file>"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-tlsCertificateKeyFile"
+      ><i class="fa fa-certificate"></i>TLS Key File</label
+    >
+    <input
+      type="text"
+      id="node-config-input-tlsCertificateKeyFile"
+      placeholder="<path to the client pem certificate file>"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-config-input-tlsCertificateKeyFilePassword"
+      ><i class="fa fa-certificate"></i>TLS Key File Password</label
+    >
+    <input
+      type="password"
+      id="node-config-input-tlsCertificateKeyFilePassword"
     />
   </div>
   <div class="form-row">
@@ -195,9 +219,13 @@ Node will create a MongoDB Client.
 
 : AuthSource (string) : Specify the database name associated with the user’s credentials.
 
-### TLS Encryption (optional)
+### TLS (optional)
 
-: TLS CA-File (path) : Specifies the location of a local .pem file that contains the root certificate chain from the Certificate Authority. This file is used to validate the certificate presented by the mongod/mongos instance.
+: TLS CA File (path) : Specifies the location of a local .pem file that contains the root certificate chain from the Certificate Authority. This file is used to validate the certificate presented by the mongod/mongos instance.
+
+: TLS Certificate Key File (path) : Specifies the location of a local .pem file that contains either the client's TLS/SSL certificate and key or only the client's TLS/SSL key when tlsCertificateFile is used to provide the certificate.
+
+: TLS Certificate Key Filepassword (string) : Specifies the password to de-crypt the TLS certificate.
 
 : TLS-Insecure (bool) : Disables various certificate validations. THIS IS REALLY NOT SECURE.
 
@@ -209,7 +237,6 @@ Node will create a MongoDB Client.
 ### Database
 
 : Database (string) : A MongoDB database name is required.
-
 </script>
 
 <script type="text/javascript">
@@ -297,7 +324,7 @@ The payload array will be passed as function arguments for the MongoDB driver co
 More information here:
 [Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
 
-#### How to query by document _id
+#### How to query by document \_id
 
 The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like:
 `msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`

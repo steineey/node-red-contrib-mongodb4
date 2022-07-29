@@ -32,21 +32,25 @@ module.exports = function (RED) {
 
       // mongo client authentication
       if (node.credentials.username || node.credentials.password) {
-        node.n.options.auth = {
-          username: node.credentials.username,
-          password: node.credentials.password,
-        };
-        node.n.options.authMechanism = n.authMechanism;
+        node.n.options.auth = {};
       }
 
+      if(node.credentials.username) node.n.options.auth.username = node.credentials.username;
+      if(node.credentials.password) node.n.options.auth.password = node.credentials.password;
+
+      // authentication mechanism
+      if(n.authMechanism) node.n.options.authMechanism = n.authMechanism;
+
       // authentication source
-      if (n.authSource) {
-        node.n.options.authSource = n.authSource;
-      }
+      if (n.authSource) node.n.options.authSource = n.authSource;
 
       // tls settings
       if (n.tls) node.n.options.tls = n.tls;
       if (n.tlsCAFile) node.n.options.tlsCAFile = n.tlsCAFile;
+      if (n.tlsCertificateKeyFile) node.n.options.tlsCertificateKeyFile = n.tlsCertificateKeyFile;
+      if (node.credentials.tlsCertificateKeyFilePassword) {
+        node.n.options.tlsCertificateKeyFilePassword = node.credentials.tlsCertificateKeyFilePassword;
+      }
       if (n.tlsInsecure) node.n.options.tlsInsecure = n.tlsInsecure;
 
       // parse advanced options as json

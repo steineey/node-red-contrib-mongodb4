@@ -54,9 +54,13 @@ This node will create a MongoDB client, with a connection pool for operation nod
 
 : AuthMech (string) : Specify the authentication mechanism that MongoDB will use to authenticate the connection.
 
-### TLS Encryption
+### TLS (optional)
 
-: TLS CA-File (path) : Specifies the location of a local .pem file that contains the root certificate chain from the Certificate Authority. This file is used to validate the certificate presented by the mongod/mongos instance.
+: TLS CA File (path) : Specifies the location of a local .pem file that contains the root certificate chain from the Certificate Authority. This file is used to validate the certificate presented by the mongod/mongos instance.
+
+: TLS Certificate Key File (path) : Specifies the location of a local .pem file that contains either the client's TLS/SSL certificate and key or only the client's TLS/SSL key when tlsCertificateFile is used to provide the certificate.
+
+: TLS Certificate Key Filepassword (string) : Specifies the password to de-crypt the TLS certificate.
 
 : TLS-Insecure (bool) : Disables various certificate validations. THIS IS REALLY NOT SECURE.
 
