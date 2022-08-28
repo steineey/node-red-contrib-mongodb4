@@ -1,5 +1,5 @@
 # node-red-contrib-mongodb4
-A MongoDB client node for Node-Red powered by MongoDB Driver 4.
+A MongoDB client node for Node-Red powered by MongoDB Driver V4
 
 This package includes two nodes for node-red:
 * A configuration node which defines a connection to a MongoDB database server.
@@ -9,7 +9,7 @@ This node was inspired by other projects like [node-red-contrib-mongodb3](https:
 
 ## Compatibility
 This MongoDB Node is compatible with the following MongoDB Server versions:
-5.1, 5.0, 4.4, 4.2, 4.0, 3.6
+6.0, 5.0, 4.4, 4.2, 4.0, 3.6
 
 You will also need a node-red version with NodeJS v12 or v14.
 
