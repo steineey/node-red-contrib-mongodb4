@@ -248,6 +248,7 @@ Node will create a MongoDB Client.
       collection: { value: "" },
       operation: { value: "" },
       output: { value: "toArray" },
+      handleDocId: { value: true },
       name: { value: "" },
     },
     inputs: 1,
@@ -290,6 +291,18 @@ Node will create a MongoDB Client.
     </select>
   </div>
   <div class="form-row">
+    <input
+        type="checkbox"
+        id="node-input-handleDocId"
+        style="display: inline-block; width: auto; vertical-align: top;"
+    />
+    <label
+        for="node-input-handleDocId"
+        style="width: auto;"
+        >Handle document _id</label
+    >
+  </div>
+  <div class="form-row">
     <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
     <input type="text" id="node-input-name" placeholder="Name" />
   </div>
@@ -311,10 +324,21 @@ Example: `msg.payload = [{name: 'marina'},{fields: {...}}]`. The payload array w
 
 : Output (string) : For `find` and `aggregate` operation. Choose `toArray` or `forEach` output type.
 
+: Handle document _id (bool) : With this feature enabled, the operation node will convert a document _id of type string to a document _id of type ObjectId.
+
+The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like: `msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`
+
+This mongodb node can handle this for you. If the string is a valid ObjectId, it will be translated into a real ObjectId before executed by the native driver.
+So this will work:
+`msg.payload = [{_id: "624b527d08e23628e99eb963"}]`
+...and this will also work:
+`msg.payload = [{_id: {$in: ["624b527d08e23628e99eb963"]}}]`
+
+### More information about collection operations
 More information here:
 [Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
 
-### Payload Input
+### Payload input
 
 Pass the CRUD operation arguments as message payload.
 Message payload has to be array type to pass multiple function arguments to driver operation.
@@ -323,16 +347,6 @@ The payload array will be passed as function arguments for the MongoDB driver co
 
 More information here:
 [Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
-
-#### How to query by document \_id
-
-The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like:
-`msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`
-No panic the mongodb node will handle this for you. You can pass a document id as string type. If this string is a valid ObjectId, it will be translated into a real ObjectId before executed by the native driver.
-So this will work:
-`msg.payload = [{_id: "624b527d08e23628e99eb963"}]`
-...and this will also work:
-`msg.payload = [{_id: {$in: ["624b527d08e23628e99eb963"]}}]`
 
 ### Payload Output
 

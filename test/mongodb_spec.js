@@ -8,403 +8,428 @@ const { ObjectId } = require("mongodb");
 helper.init(require.resolve("node-red"));
 
 function getHelperNode() {
-  return { id: "helper-node", type: "helper" };
+    return { id: "helper-node", type: "helper" };
 }
 
 function getConfigNode() {
-  return {
-    id: "config-node",
-    type: "mongodb4-client",
-    ...testConfig.configNode,
-  };
+    return {
+        id: "config-node",
+        type: "mongodb4-client",
+        ...testConfig.configNode,
+    };
 }
 
 function getOperationNode() {
-  return {
-    id: "operation-node",
-    type: "mongodb4",
-    clientNode: "config-node",
-    collection: testConfig.collection,
-    wires: [["helper-node"]],
-  };
+    return {
+        id: "operation-node",
+        type: "mongodb4",
+        clientNode: "config-node",
+        collection: testConfig.collection,
+        handleDocId: true,
+        output: "toArray",
+        wires: [["helper-node"]],
+    };
 }
 
 var testFlow = [getHelperNode(), getConfigNode(), getOperationNode()];
 
 describe("testing mongodb4 nodes", function () {
-  beforeEach(function (done) {
-    helper.startServer(done);
-  });
-
-  afterEach(function (done) {
-    helper.unload().then(function () {
-      helper.stopServer(done);
+    beforeEach(function (done) {
+        helper.startServer(done);
     });
-  });
 
-  it("connection test", function (done) {
-    helper.load(
-      mongodbNode,
-      testFlow,
-      { "config-node": testConfig.credentials },
-      function () {
-        var operationNode = helper.getNode("operation-node");
-        var configNode = helper.getNode("config-node");
-
-        should(operationNode).not.be.null();
-        should(configNode).not.be.null();
-        should(operationNode.n.client).not.be.null();
-
-        var c = 0;
-        var states = ["connecting", "connected"];
-
-        operationNode.on("call:status", (call) => {
-          should(call.firstArg.text).be.equal(states[c]);
-          c++;
-          if (call.firstArg.text === "connected") {
-            done();
-          }
+    afterEach(function (done) {
+        helper.unload().then(function () {
+            helper.stopServer(done);
         });
-      }
-    );
-  });
+    });
 
-  it("connection advanced", function (done) {
-    helper.load(
-      mongodbNode,
-      [
-        getHelperNode(),
-        { ...getConfigNode(), advanced: '{"authSource": "nodered"}' },
-        getOperationNode(),
-      ],
-      { "config-node": testConfig.credentials },
-      function () {
-        var operationNode = helper.getNode("operation-node");
+    it("connection test", function (done) {
+        helper.load(
+            mongodbNode,
+            testFlow,
+            { "config-node": testConfig.credentials },
+            function () {
+                var operationNode = helper.getNode("operation-node");
+                var configNode = helper.getNode("config-node");
 
-        var c = 0;
-        var states = ["connecting", "connected"];
+                should(operationNode).not.be.null();
+                should(configNode).not.be.null();
+                should(operationNode.n.client).not.be.null();
 
-        operationNode.on("call:status", (call) => {
-          should(call.firstArg.text).be.equal(states[c]);
-          c++;
-          if (call.firstArg.text === "connected") {
-            done();
-          }
-        });
-      }
-    );
-  });
+                var c = 0;
+                var states = ["connecting", "connected"];
 
-  it("insert test", function (done) {
-    helper.load(
-      mongodbNode,
-      testFlow,
-      { "config-node": testConfig.credentials },
-      function () {
-        var helperNode = helper.getNode("helper-node");
-        var operationNode = helper.getNode("operation-node");
-
-        helperNode.on("input", function (msg) {
-          try {
-            msg.should.have.property("payload");
-            msg.payload.should.have.property("acknowledged", true);
-            done();
-          } catch (err) {
-            done(err);
-          }
-        });
-
-        operationNode.on("call:status", (call) => {
-          if (call.firstArg && call.firstArg.text === "connected") {
-            operationNode.receive({
-              payload: [{ uid: uid }],
-              collection: testConfig.collection,
-              operation: "insertOne",
-            });
-          }
-        });
-
-        operationNode.on("call:error", (call) => {
-          done(new Error(call.firstArg));
-        });
-      }
-    );
-  });
-
-  it("operations before connected", function (done) {
-    helper.load(
-      mongodbNode,
-      testFlow,
-      { "config-node": testConfig.credentials },
-      function () {
-        var helperNode = helper.getNode("helper-node");
-        var operationNode = helper.getNode("operation-node");
-
-        operationNode.receive({
-          payload: [{ uid: uid }],
-          collection: testConfig.collection,
-          operation: "insertOne",
-        });
-
-        operationNode.receive({
-          payload: [{ uid: uid }],
-          collection: testConfig.collection,
-          operation: "insertOne",
-        });
-
-        var counter = 0;
-
-        helperNode.on("input", function (msg) {
-          counter++;
-          try {
-            msg.should.have.property("payload");
-            msg.payload.should.have.property("acknowledged", true);
-            if (counter === 2) {
-              done();
+                operationNode.on("call:status", (call) => {
+                    should(call.firstArg.text).be.equal(states[c]);
+                    c++;
+                    if (call.firstArg.text === "connected") {
+                        done();
+                    }
+                });
             }
-          } catch (err) {
-            done(err);
-          }
-        });
+        );
+    });
 
-        operationNode.on("call:error", (call) => {
-          done(new Error(call.firstArg));
-        });
-      }
-    );
-  });
+    it("connection advanced", function (done) {
+        helper.load(
+            mongodbNode,
+            [
+                getHelperNode(),
+                { ...getConfigNode(), advanced: '{"authSource": "nodered"}' },
+                getOperationNode(),
+            ],
+            { "config-node": testConfig.credentials },
+            function () {
+                var operationNode = helper.getNode("operation-node");
 
-  it("implicit ObjectId", function (done) {
-    helper.load(
-      mongodbNode,
-      testFlow,
-      { "config-node": testConfig.credentials },
-      function () {
-        var helperNode = helper.getNode("helper-node");
-        var operationNode = helper.getNode("operation-node");
+                var c = 0;
+                var states = ["connecting", "connected"];
 
-        // step 1
-        operationNode.receive({
-          payload: [{ _id: "624b3c625a145193099962d1" }],
-          collection: testConfig.collection,
-          operation: "deleteMany",
-        });
+                operationNode.on("call:status", (call) => {
+                    should(call.firstArg.text).be.equal(states[c]);
+                    c++;
+                    if (call.firstArg.text === "connected") {
+                        done();
+                    }
+                });
+            }
+        );
+    });
 
-        helperNode.on("input", function (msg) {
-          if (msg.operation === "deleteMany") {
-            // after delete many
-            operationNode.receive({
-              payload: [
-                { _id: ObjectId("624b3c625a145193099962d1"), success: true },
-              ],
-              collection: testConfig.collection,
-              operation: "insertOne",
-            });
-            return;
-          } else if (msg.operation === "insertOne") {
-            // after insertOne
-            operationNode.receive({
-              payload: [{ _id: "624b3c625a145193099962d1" }],
-              collection: testConfig.collection,
-              operation: "findOne",
-            });
-            return;
-          } else if (msg.operation === "findOne") {
-            msg.should.have.property("payload");
-            msg.payload.should.have.property("success");
-            done();
-          }
-        });
+    it("insert test", function (done) {
+        helper.load(
+            mongodbNode,
+            testFlow,
+            { "config-node": testConfig.credentials },
+            function () {
+                var helperNode = helper.getNode("helper-node");
+                var operationNode = helper.getNode("operation-node");
 
-        operationNode.on("call:error", (call) => {
-          done(new Error(call.firstArg));
-        });
-      }
-    );
-  });
+                helperNode.on("input", function (msg) {
+                    try {
+                        msg.should.have.property("payload");
+                        msg.payload.should.have.property("acknowledged", true);
+                        done();
+                    } catch (err) {
+                        done(err);
+                    }
+                });
 
-  it("find to array test", function (done) {
-    helper.load(
-      mongodbNode,
-      testFlow,
-      { "config-node": testConfig.credentials },
-      function () {
-        var helperNode = helper.getNode("helper-node");
-        var operationNode = helper.getNode("operation-node");
+                operationNode.on("call:status", (call) => {
+                    if (call.firstArg && call.firstArg.text === "connected") {
+                        operationNode.receive({
+                            payload: [{ uid: uid }],
+                            collection: testConfig.collection,
+                            operation: "insertOne",
+                        });
+                    }
+                });
 
-        helperNode.on("input", function (msg) {
-          try {
-            msg.should.have.property("payload");
-            msg.payload.should.have.property("uid", uid);
-            done();
-          } catch (err) {
-            done(err);
-          }
-        });
+                operationNode.on("call:error", (call) => {
+                    done(new Error(call.firstArg));
+                });
+            }
+        );
+    });
 
-        operationNode.on("call:status", (call) => {
-          if (call.firstArg && call.firstArg.text === "connected") {
-            operationNode.receive({
-              payload: [{ uid: uid }],
-              collection: testConfig.collection,
-              operation: "findOne",
-            });
-          }
-        });
+    it("operations before connected", function (done) {
+        helper.load(
+            mongodbNode,
+            testFlow,
+            { "config-node": testConfig.credentials },
+            function () {
+                var helperNode = helper.getNode("helper-node");
+                var operationNode = helper.getNode("operation-node");
 
-        operationNode.on("call:error", (call) => {
-          done(new Error(call.firstArg));
-        });
-      }
-    );
-  });
+                operationNode.receive({
+                    payload: [{ uid: uid }],
+                    collection: testConfig.collection,
+                    operation: "insertOne",
+                });
 
-  it("find for each", function (done) {
-    helper.load(
-      mongodbNode,
-      [
-        getHelperNode(),
-        getConfigNode(),
-        { ...getOperationNode(), output: "forEach" },
-      ],
-      { "config-node": testConfig.credentials },
-      function () {
-        var helperNode = helper.getNode("helper-node");
-        var operationNode = helper.getNode("operation-node");
+                operationNode.receive({
+                    payload: [{ uid: uid }],
+                    collection: testConfig.collection,
+                    operation: "insertOne",
+                });
 
-        helperNode.on("input", function (msg) {
-          try {
-            msg.should.have.property("payload");
-            done();
-          } catch (err) {
-            done(err);
-          }
-        });
+                var counter = 0;
 
-        operationNode.on("call:status", (call) => {
-          if (call.firstArg && call.firstArg.text === "connected") {
-            operationNode.receive({
-              payload: [[{ $limit: 1 }]],
-              operation: "aggregate",
-            });
-          }
-        });
+                helperNode.on("input", function (msg) {
+                    counter++;
+                    try {
+                        msg.should.have.property("payload");
+                        msg.payload.should.have.property("acknowledged", true);
+                        if (counter === 2) {
+                            done();
+                        }
+                    } catch (err) {
+                        done(err);
+                    }
+                });
 
-        operationNode.on("call:error", (call) => {
-          done(new Error(call.firstArg));
-        });
-      }
-    );
-  });
+                operationNode.on("call:error", (call) => {
+                    done(new Error(call.firstArg));
+                });
+            }
+        );
+    });
 
-  it("test invalid payload", function (done) {
-    helper.load(
-      mongodbNode,
-      testFlow,
-      { "config-node": testConfig.credentials },
-      function () {
-        var operationNode = helper.getNode("operation-node");
+    it("implicit ObjectId", function (done) {
+        helper.load(
+            mongodbNode,
+            testFlow,
+            { "config-node": testConfig.credentials },
+            function () {
+                var helperNode = helper.getNode("helper-node");
+                var operationNode = helper.getNode("operation-node");
 
-        operationNode.on("call:status", (call) => {
-          if (call.firstArg && call.firstArg.text === "connected") {
-            operationNode.receive({
-              payload: { uid: uid },
-              collection: testConfig.collection,
-              operation: "findOne",
-            });
-          }
-        });
+                // step 1
+                operationNode.receive({
+                    payload: [{}],
+                    collection: testConfig.collection,
+                    operation: "deleteMany",
+                });
 
-        operationNode.on("call:error", (call) => {
-          should(call).have.property(
-            "firstArg",
-            "Payload is missing or not array type."
-          );
-          done();
-        });
-      }
-    );
-  });
+                helperNode.on("input", function (msg) {
+                    if (msg.operation === "deleteMany") {
+                        // after delete many
+                        operationNode.receive({
+                            payload: [
+                                {
+                                    _id: ObjectId("624b3c625a145193099962d1"),
+                                    success: true,
+                                },
+                            ],
+                            collection: testConfig.collection,
+                            operation: "insertOne",
+                        });
+                        return;
+                    } else if (msg.operation === "insertOne") {
+                        // after insertOne
+                        operationNode.receive({
+                            payload: [{ _id: "624b3c625a145193099962d1" }],
+                            collection: testConfig.collection,
+                            operation: "findOne",
+                        });
+                        return;
+                    } else if (msg.operation === "findOne") {
+                        msg.should.have.property("payload");
+                        msg.payload.should.have.property("success");
+                        done();
+                    } else {
+                        done(new Error("invalid input"));
+                    }
+                });
 
-  it("invalid query param", function (done) {
-    helper.load(
-      mongodbNode,
-      testFlow,
-      { "config-node": testConfig.credentials },
-      function () {
-        var operationNode = helper.getNode("operation-node");
+                operationNode.on("call:error", (call) => {
+                    done(new Error(call.firstArg));
+                });
+            }
+        );
+    });
 
-        operationNode.on("call:status", (call) => {
-          if (call.firstArg && call.firstArg.text === "connected") {
-            operationNode.receive({
-              payload: [{ $fail: uid }],
-              collection: testConfig.collection,
-              operation: "findOne",
-            });
-          }
-        });
+    it("find to array test", function (done) {
+        helper.load(
+            mongodbNode,
+            testFlow,
+            { "config-node": testConfig.credentials },
+            function () {
+                var helperNode = helper.getNode("helper-node");
+                var operationNode = helper.getNode("operation-node");
 
-        operationNode.on("call:error", (call) => {
-          done();
-        });
-      }
-    );
-  });
+                operationNode.on("call:status", (call) => {
+                    if (call.firstArg && call.firstArg.text === "connected") {
+                        try {
+                            operationNode.receive({
+                                collection: testConfig.collection,
+                                operation: "find",
+                                payload: [{}],
+                            });
+                        } catch (err) {
+                            done(err);
+                        }
+                    }
+                });
 
-  it("collection operation undefined", function (done) {
-    helper.load(
-      mongodbNode,
-      testFlow,
-      { "config-node": testConfig.credentials },
-      function () {
-        var operationNode = helper.getNode("operation-node");
+                helperNode.on("input", function (msg) {
+                    try {
+                        msg.should.have.property("payload");
+                        msg.payload.should.be.instanceOf(Array);
+                        done();
+                    } catch (err) {
+                        done(err);
+                    }
+                });
 
-        operationNode.on("call:status", (call) => {
-          if (call.firstArg && call.firstArg.text === "connected") {
-            operationNode.receive({
-              payload: [{ $fail: uid }],
-              collection: testConfig.collection,
-            });
-          }
-        });
+                operationNode.on("call:error", (call) => {
+                    done(new Error(call.firstArg));
+                });
+            }
+        );
+    });
 
-        operationNode.on("call:error", (call) => {
-          should(call).have.property(
-            "firstArg",
-            "Collection operation undefined."
-          );
-          done();
-        });
-      }
-    );
-  });
+    it("find for each", function (done) {
+        helper.load(
+            mongodbNode,
+            [
+                getHelperNode(),
+                getConfigNode(),
+                { ...getOperationNode(), output: "forEach" },
+            ],
+            { "config-node": testConfig.credentials },
+            function () {
+                var helperNode = helper.getNode("helper-node");
+                var operationNode = helper.getNode("operation-node");
 
-  it("collection operation not supported", function (done) {
-    helper.load(
-      mongodbNode,
-      testFlow,
-      { "config-node": testConfig.credentials },
-      function () {
-        var operationNode = helper.getNode("operation-node");
+                operationNode.on("call:status", (call) => {
+                    if (call.firstArg && call.firstArg.text === "connected") {
+                        operationNode.receive({
+                            operation: "insertMany",
+                            payload: [[{ test: 1 }, { test: 2 }, { test: 3 }]],
+                            afterInsertMany: true,
+                        });
+                    }
+                });
 
-        operationNode.on("call:status", (call) => {
-          if (call.firstArg && call.firstArg.text === "connected") {
-            operationNode.receive({
-              payload: [{ uid: uid }],
-              collection: testConfig.collection,
-              operation: "willFail",
-            });
-          }
-        });
+                let msgCount = 0;
 
-        operationNode.on("call:error", (call) => {
-          should(call).have.property(
-            "firstArg",
-            'Unsupported collection operation: "willFail"'
-          );
-          done();
-        });
-      }
-    );
-  });
+                helperNode.on("input", (msg) => {
+                    if (msg.afterInsertMany) {
+                        operationNode.receive({
+                            operation: "aggregate",
+                            payload: [
+                                [
+                                    { $match: { test: { $in: [1, 2, 3] } } },
+                                    { $limit: 3 },
+                                ],
+                            ],
+                        });
+                    } else {
+                        // count to three
+                        msgCount++;
+                        if (msgCount === 3) {
+                            done();
+                        }
+                    }
+                });
+
+                operationNode.on("call:error", (call) => {
+                    done(new Error(call.firstArg));
+                });
+            }
+        );
+    });
+
+    it("test invalid payload", function (done) {
+        helper.load(
+            mongodbNode,
+            testFlow,
+            { "config-node": testConfig.credentials },
+            function () {
+                var operationNode = helper.getNode("operation-node");
+
+                operationNode.on("call:status", (call) => {
+                    if (call.firstArg && call.firstArg.text === "connected") {
+                        operationNode.receive({
+                            payload: { uid: uid },
+                            collection: testConfig.collection,
+                            operation: "findOne",
+                        });
+                    }
+                });
+
+                operationNode.on("call:error", (call) => {
+                    should(call).have.property(
+                        "firstArg",
+                        "Payload is missing or not array type."
+                    );
+                    done();
+                });
+            }
+        );
+    });
+
+    it("invalid query param", function (done) {
+        helper.load(
+            mongodbNode,
+            testFlow,
+            { "config-node": testConfig.credentials },
+            function () {
+                var operationNode = helper.getNode("operation-node");
+
+                operationNode.on("call:status", (call) => {
+                    if (call.firstArg && call.firstArg.text === "connected") {
+                        operationNode.receive({
+                            payload: [{ $fail: uid }],
+                            collection: testConfig.collection,
+                            operation: "findOne",
+                        });
+                    }
+                });
+
+                operationNode.on("call:error", (call) => {
+                    done();
+                });
+            }
+        );
+    });
+
+    it("collection operation undefined", function (done) {
+        helper.load(
+            mongodbNode,
+            testFlow,
+            { "config-node": testConfig.credentials },
+            function () {
+                var operationNode = helper.getNode("operation-node");
+
+                operationNode.on("call:status", (call) => {
+                    if (call.firstArg && call.firstArg.text === "connected") {
+                        operationNode.receive({
+                            payload: [{ $fail: uid }],
+                            collection: testConfig.collection,
+                        });
+                    }
+                });
+
+                operationNode.on("call:error", (call) => {
+                    should(call).have.property(
+                        "firstArg",
+                        "Collection operation undefined."
+                    );
+                    done();
+                });
+            }
+        );
+    });
+
+    it("collection operation not supported", function (done) {
+        helper.load(
+            mongodbNode,
+            testFlow,
+            { "config-node": testConfig.credentials },
+            function () {
+                var operationNode = helper.getNode("operation-node");
+
+                operationNode.on("call:status", (call) => {
+                    if (call.firstArg && call.firstArg.text === "connected") {
+                        operationNode.receive({
+                            payload: [{ uid: uid }],
+                            collection: testConfig.collection,
+                            operation: "willFail",
+                        });
+                    }
+                });
+
+                operationNode.on("call:error", (call) => {
+                    should(call).have.property(
+                        "firstArg",
+                        'Unsupported collection operation: "willFail"'
+                    );
+                    done();
+                });
+            }
+        );
+    });
 });

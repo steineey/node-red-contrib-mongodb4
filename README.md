@@ -77,25 +77,38 @@ This node will create a MongoDB client, with a connection pool for operation nod
 Each configuration node has his own connection pool with a default max poolsize of 100 connection at a given time. More parallel connections / operations will be queued and processed synchronous. In this scenario slow operations will delay fast operations. You can create more separat connection pools with more configuration nodes. [More Information](https://docs.mongodb.com/drivers/node/current/faq/#how-can-i-prevent-a-slow-operation-from-delaying-other-operations-)
 
 
-## The Operation Node
+## The operation Node
 
 Execute MongoDB collection operations with this node.
 
-### Connection
+### Inputs / Options
 
-Select a MongoDB database server connection.
+: Connection (mongodb-client) : Select a MongoDB database server connection.
 
-### Collection
+: Collection | msg.collection (string) : MongoDB database collection.
 
-MongoDB database collection static definition or with `msg.collection`
+: Operation | msg.operation (string) : A MongoDB Driver 4 collection CRUD operation for example `find`, `findOne`, `insertOne`, `updateOne`, `aggregate` and many more.
 
-### Operation
+: msg.payload (array) : Pass the CRUD operation arguments as message payload. Message payload has to be array type to pass multiple function arguments to driver operation.
+Example: `msg.payload = [{name: 'marina'},{fields: {...}}]`. The payload array will be passed as function arguments for the MongoDB driver collection operation, like so: `collection.find({name: 'marina'}, {fields: {...}})`
 
-A MongoDB Driver 4 collection CRUD operation for example `find`, `insertOne`, `updateOne`, `aggregate` and many more.
+: Output (string) : For `find` and `aggregate` operation. Choose `toArray` or `forEach` output type.
 
-Read the full documentation here: [Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
+: handle document _id (bool) : With this feature enabled, the operation node will convert a document _id of type string to a document _id of type ObjectId.
 
-### Payload Input
+The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like: `msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`
+
+This mongodb node can handle this for you. If the string is a valid ObjectId, it will be translated into a real ObjectId before executed by the native driver.
+So this will work:
+`msg.payload = [{_id: "624b527d08e23628e99eb963"}]`
+...and this will also work:
+`msg.payload = [{_id: {$in: ["624b527d08e23628e99eb963"]}}]`
+
+### More information about collection operations
+More information here:
+[Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
+
+### Payload input
 
 Pass the CRUD operation arguments as message payload.
 Message payload has to be array type to pass multiple function arguments to driver operation.
@@ -104,17 +117,6 @@ The payload array will be passed as function arguments for the MongoDB driver co
 
 More information here:
 [Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
-
-
-### How to query by document _id
-
-The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like:
-`msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`
-No panic the operation node will handle this for you. You can pass a document id as string type. If this string is a valid ObjectId, it will be translated into a real ObjectId before executed by the native driver.
-So this will work:
-`msg.payload = [{_id: "624b527d08e23628e99eb963"}]`
-or this will also work:
-`msg.payload = [{_id: {$in: ["624b527d08e23628e99eb963"]}}]`
 
 ### Payload Output
 
