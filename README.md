@@ -85,9 +85,13 @@ Execute MongoDB collection operations with this node.
 
 : Connection (mongodb-client) : Select a MongoDB database server connection.
 
+: Mode | msg.mode (string) : Decide if you want to run a collection or db operation {'collection', 'db'}
+
 : Collection | msg.collection (string) : MongoDB database collection.
 
-: Operation | msg.operation (string) : A MongoDB Driver 4 collection CRUD operation for example `find`, `findOne`, `insertOne`, `updateOne`, `aggregate` and many more.
+: Operation | msg.operation (string) : Run a collection or database operation. 
+Examples for collection operation are CRUD like `find`, `findOne`, `insertOne`, `updateOne`, `aggregate` and many more. 
+Valid database operations are `command`, `ping`, `stats` and more.
 
 : msg.payload (array) : Pass the CRUD operation arguments as message payload. Message payload has to be array type to pass multiple function arguments to driver operation.
 Example: `msg.payload = [{name: 'marina'},{fields: {...}}]`. The payload array will be passed as function arguments for the MongoDB driver collection operation, like so: `collection.find({name: 'marina'}, {fields: {...}})`
