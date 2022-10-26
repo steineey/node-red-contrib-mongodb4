@@ -1,194 +1,201 @@
 <script type="text/javascript">
   RED.nodes.registerType("mongodb4-client", {
-    category: "config",
-    defaults: {
-      name: { value: "" },
-      protocol: { value: "mongodb", required: true },
-      hostname: { value: "" },
-      port: { value: "" },
-      dbName: { value: "", required: true },
-      authSource: { value: "" },
-      authMechanism: { value: "DEFAULT" },
-      tls: { value: false },
-      tlsCAFile: { value: "" },
-      tlsInsecure: { value: false },
-      uri: { value: "" },
-      advanced: { value: "" },
-      uriTabActive: { value: "tab-uri-simple" },
-    },
-    credentials: {
-      username: { value: "", type: "text" },
-      password: { value: "", type: "password" },
-    },
-    label: function () {
-      return this.name || `${this.hostname} ${this.dbName}`;
-    },
-    oneditprepare: function () {
-      // uri tabs
-      this.uriTabs = RED.tabs.create({
-        id: "tabs",
-        onchange: function (tab) {
-          $("#tabs-content").children().hide();
-          $("#" + tab.id).show();
-        },
-      });
+      category: "config",
+      defaults: {
+          name: { value: "" },
+          protocol: { value: "mongodb", required: true },
+          hostname: { value: "" },
+          port: { value: "" },
+          dbName: { value: "", required: true },
+          authSource: { value: "" },
+          authMechanism: { value: "DEFAULT" },
+          tls: { value: false },
+          tlsCAFile: { value: "" },
+          tlsInsecure: { value: false },
+          uri: { value: "" },
+          advanced: { value: "" },
+          uriTabActive: { value: "tab-uri-simple" },
+      },
+      credentials: {
+          username: { value: "", type: "text" },
+          password: { value: "", type: "password" },
+      },
+      label: function () {
+          return this.name || `${this.hostname} ${this.dbName}`;
+      },
+      oneditprepare: function () {
+          // uri tabs
+          this.uriTabs = RED.tabs.create({
+              id: "tabs",
+              onchange: function (tab) {
+                  $("#tabs-content").children().hide();
+                  $("#" + tab.id).show();
+              },
+          });
 
-      this.uriTabs.addTab({
-        id: "tab-uri-simple",
-        label: "Simple Connection URI",
-      });
+          this.uriTabs.addTab({
+              id: "tab-uri-simple",
+              label: "Simple Connection URI",
+          });
 
-      this.uriTabs.addTab({
-        id: "tab-uri-advanced",
-        label: "Advanced Connection URI",
-      });
+          this.uriTabs.addTab({
+              id: "tab-uri-advanced",
+              label: "Advanced Connection URI",
+          });
 
-      if (this.uriTabActive) {
-        this.uriTabs.activateTab(this.uriTabActive);
-      }
-    },
-    oneditsave: function () {
-      this.uriTabActive = this.uriTabs.listTabs()[this.uriTabs.activeIndex()];
-    },
+          if (this.uriTabActive) {
+              this.uriTabs.activateTab(this.uriTabActive);
+          }
+      },
+      oneditsave: function () {
+          this.uriTabActive =
+              this.uriTabs.listTabs()[this.uriTabs.activeIndex()];
+      },
   });
 </script>
 
 <script type="text/html" data-template-name="mongodb4-client">
   <div class="form-row">
-    <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input type="text" id="node-config-input-name" />
+      <label for="node-config-input-name"
+          ><i class="fa fa-tag"></i> Name</label
+      >
+      <input type="text" id="node-config-input-name" />
   </div>
   <div class="form-row tabs-row">
-    <ul style="min-width: 600px; margin-bottom: 20px;" id="tabs"></ul>
+      <ul style="min-width: 600px; margin-bottom: 20px;" id="tabs"></ul>
   </div>
   <div id="tabs-content">
-    <div id="tab-uri-simple" style="display:none">
-      <div class="form-row">
-        <label for="node-config-input-protocol"
-          ><i class="fa fa-envelope-o"></i> Protocol</label
-        >
-        <select id="node-config-input-protocol">
-          <option value="mongodb">mongodb</option>
-          <option value="mongodb+srv">mongodb+srv</option>
-        </select>
+      <div id="tab-uri-simple" style="display:none">
+          <div class="form-row">
+              <label for="node-config-input-protocol"
+                  ><i class="fa fa-envelope-o"></i> Protocol</label
+              >
+              <select id="node-config-input-protocol">
+                  <option value="mongodb">mongodb</option>
+                  <option value="mongodb+srv">mongodb+srv</option>
+              </select>
+          </div>
+          <div class="form-row">
+              <label for="node-config-input-hostname"
+                  ><i class="fa fa-server"></i> Hostname</label
+              >
+              <input
+                  type="text"
+                  id="node-config-input-hostname"
+                  placeholder="localhost"
+              />
+          </div>
+          <div class="form-row">
+              <label for="node-config-input-port"
+                  ><i class="fa fa-plug"></i> Port</label
+              >
+              <input
+                  type="text"
+                  id="node-config-input-port"
+                  placeholder="27017"
+              />
+          </div>
       </div>
-      <div class="form-row">
-        <label for="node-config-input-hostname"
-          ><i class="fa fa-server"></i> Hostname</label
-        >
-        <input
-          type="text"
-          id="node-config-input-hostname"
-          placeholder="localhost"
-        />
+      <div id="tab-uri-advanced" style="display:none">
+          <div class="form-row">
+              <label for="node-config-input-uri"
+                  ><i class="fa fa-bolt"></i> URI</label
+              >
+              <input
+                  type="text"
+                  id="node-config-input-uri"
+                  placeholder="mongodb://localhost:27017"
+              />
+          </div>
       </div>
-      <div class="form-row">
-        <label for="node-config-input-port"
-          ><i class="fa fa-plug"></i> Port</label
-        >
-        <input type="text" id="node-config-input-port" placeholder="27017" />
-      </div>
-    </div>
-    <div id="tab-uri-advanced" style="display:none">
-      <div class="form-row">
-        <label for="node-config-input-uri"
-          ><i class="fa fa-bolt"></i> URI</label
-        >
-        <input
-          type="text"
-          id="node-config-input-uri"
-          placeholder="mongodb://localhost:27017"
-        />
-      </div>
-    </div>
   </div>
 
   <div class="form-row">
-    <label for="node-config-input-authMechanism"
-      ><i class="fa fa-key"></i> AuthMech</label
-    >
-    <select id="node-config-input-authMechanism">
-      <option value="DEFAULT">DEFAULT</option>
-      <option value="SCRAM-SHA-256">SCRAM-SHA-256</option>
-      <option value="SCRAM-SHA-1">SCRAM-SHA-1</option>
-      <option value="MONGODB-CR">MONGODB-CR</option>
-      <option value="MONGODB-AWS">MONGODB-AWS</option>
-      <option value="MONGODB-X509">MONGODB-X509</option>
-      <option value="PLAIN">PLAIN</option>
-      <option value="GSSAPI">GSSAPI</option>
-    </select>
+      <label for="node-config-input-authMechanism"
+          ><i class="fa fa-key"></i> AuthMech</label
+      >
+      <select id="node-config-input-authMechanism">
+          <option value="DEFAULT">DEFAULT</option>
+          <option value="SCRAM-SHA-256">SCRAM-SHA-256</option>
+          <option value="SCRAM-SHA-1">SCRAM-SHA-1</option>
+          <option value="MONGODB-CR">MONGODB-CR</option>
+          <option value="MONGODB-AWS">MONGODB-AWS</option>
+          <option value="MONGODB-X509">MONGODB-X509</option>
+          <option value="PLAIN">PLAIN</option>
+          <option value="GSSAPI">GSSAPI</option>
+      </select>
   </div>
   <div class="form-row">
-    <label for="node-config-input-authSource"
-      ><i class="fa fa-id-card-o"></i> AuthSource</label
-    >
-    <input type="text" id="node-config-input-authSource" />
+      <label for="node-config-input-authSource"
+          ><i class="fa fa-id-card-o"></i> AuthSource</label
+      >
+      <input type="text" id="node-config-input-authSource" />
   </div>
   <div class="form-row">
-    <label for="node-config-input-username"
-      ><i class="fa fa-user"></i> Username</label
-    >
-    <input type="text" id="node-config-input-username" />
+      <label for="node-config-input-username"
+          ><i class="fa fa-user"></i> Username</label
+      >
+      <input type="text" id="node-config-input-username" />
   </div>
   <div class="form-row">
-    <label for="node-config-input-password"
-      ><i class="fa fa-unlock-alt"></i> Password</label
-    >
-    <input type="password" id="node-config-input-password" />
+      <label for="node-config-input-password"
+          ><i class="fa fa-unlock-alt"></i> Password</label
+      >
+      <input type="password" id="node-config-input-password" />
   </div>
   <div class="form-row">
-    <label for="node-config-input-tls"
-      ><i class="fa fa-handshake-o"></i> TLS</label
-    >
-    <input type="checkbox" id="node-config-input-tls" />
+      <label for="node-config-input-tls"
+          ><i class="fa fa-handshake-o"></i> TLS</label
+      >
+      <input type="checkbox" id="node-config-input-tls" />
   </div>
   <div class="form-row">
-    <label for="node-config-input-tlsCAFile"
-      ><i class="fa fa-certificate"></i>TLS CA File</label
-    >
-    <input
-      type="text"
-      id="node-config-input-tlsCAFile"
-      placeholder="<path to CA certificate file>"
-    />
+      <label for="node-config-input-tlsCAFile"
+          ><i class="fa fa-certificate"></i> TLS CA File</label
+      >
+      <input
+          type="text"
+          id="node-config-input-tlsCAFile"
+          placeholder="<path to CA certificate file>"
+      />
   </div>
   <div class="form-row">
-    <label for="node-config-input-tlsCertificateKeyFile"
-      ><i class="fa fa-certificate"></i>TLS Key File</label
-    >
-    <input
-      type="text"
-      id="node-config-input-tlsCertificateKeyFile"
-      placeholder="<path to the client pem certificate file>"
-    />
+      <label for="node-config-input-tlsCertificateKeyFile"
+          ><i class="fa fa-certificate"></i> TLS Key File</label
+      >
+      <input
+          type="text"
+          id="node-config-input-tlsCertificateKeyFile"
+          placeholder="<path to the client pem certificate file>"
+      />
   </div>
   <div class="form-row">
-    <label for="node-config-input-tlsCertificateKeyFilePassword"
-      ><i class="fa fa-certificate"></i>TLS Key File Password</label
-    >
-    <input
-      type="password"
-      id="node-config-input-tlsCertificateKeyFilePassword"
-    />
+      <label for="node-config-input-tlsCertificateKeyFilePassword"
+          ><i class="fa fa-certificate"></i> TLS Key File Password</label
+      >
+      <input
+          type="password"
+          id="node-config-input-tlsCertificateKeyFilePassword"
+      />
   </div>
   <div class="form-row">
-    <label for="node-config-input-tlsInsecure"
-      ><i class="fa fa-ban"></i> TLS-Insecure</label
-    >
-    <input type="checkbox" id="node-config-input-tlsInsecure" />
+      <label for="node-config-input-tlsInsecure"
+          ><i class="fa fa-ban"></i> TLS-Insecure</label
+      >
+      <input type="checkbox" id="node-config-input-tlsInsecure" />
   </div>
 
   <div class="form-row">
-    <label for="node-config-input-advanced"
-      ><i class="fa fa-cogs"></i> Options</label
-    >
-    <input type="text" id="node-config-input-advanced" placeholder="{}" />
+      <label for="node-config-input-advanced"
+          ><i class="fa fa-cogs"></i> Options</label
+      >
+      <input type="text" id="node-config-input-advanced" placeholder="{}" />
   </div>
   <div class="form-row">
-    <label for="node-config-input-dbName"
-      ><i class="fa fa-database"></i> Database</label
-    >
-    <input type="text" id="node-config-input-dbName" />
+      <label for="node-config-input-dbName"
+          ><i class="fa fa-database"></i> Database</label
+      >
+      <input type="text" id="node-config-input-dbName" />
   </div>
 </script>
 
@@ -241,70 +248,84 @@ Node will create a MongoDB Client.
 
 <script type="text/javascript">
   RED.nodes.registerType("mongodb4", {
-    category: "storage-input",
-    color: "#3FA037",
-    defaults: {
-      clientNode: { type: "mongodb4-client" },
-      collection: { value: "" },
-      operation: { value: "" },
-      output: { value: "toArray" },
-      handleDocId: { value: true },
-      name: { value: "" },
-    },
-    inputs: 1,
-    outputs: 1,
-    icon: "db.svg",
-    label: function () {
-      return this.name || this.operation || "mongodb4";
-    },
+      category: "storage-input",
+      color: "#3FA037",
+      defaults: {
+          clientNode: { type: "mongodb4-client" },
+          mode: { value: "collection" },
+          collection: { value: "" },
+          operation: { value: "" },
+          output: { value: "toArray" },
+          handleDocId: { value: true },
+          name: { value: "" },
+      },
+      inputs: 1,
+      outputs: 1,
+      icon: "db.svg",
+      label: function () {
+          return this.name || this.operation || "mongodb4";
+      },
   });
 </script>
 
 <script type="text/html" data-template-name="mongodb4">
   <div class="form-row">
-    <label for="node-input-clientNode"
-      ><i class="fa fa-server"></i> Connection</label
-    >
-    <input type="text" id="node-input-clientNode" />
+      <label for="node-input-clientNode"
+          ><i class="fa fa-server"></i> Connection</label
+      >
+      <input type="text" id="node-input-clientNode" />
   </div>
   <div class="form-row">
-    <label for="node-input-collection"
-      ><i class="fa fa-archive"></i> Collection</label
-    >
-    <input
-      type="text"
-      id="node-input-collection"
-      placeholder="msg.collection"
-    />
+      <label for="node-input-mode"
+          ><i class="fa fa-sitemap"></i> Mode</label
+      >
+      <select id="node-input-mode" >
+          <option value="collection">collection operation</option>
+          <option value="db">database operation</option>
+      </select>
   </div>
   <div class="form-row">
-    <label for="node-input-operation"
-      ><i class="fa fa-code"></i> Operation</label
-    >
-    <input type="text" id="node-input-operation" placeholder="msg.operation" />
+      <label for="node-input-collection"
+          ><i class="fa fa-archive"></i> Collection</label
+      >
+      <input
+          type="text"
+          id="node-input-collection"
+          placeholder="msg.collection"
+      />
   </div>
   <div class="form-row">
-    <label for="node-input-output"><i class="fa fa-sign-out"></i> Output</label>
-    <select id="node-input-output">
-      <option value="toArray">toArray</option>
-      <option value="forEach">forEach</option>
-    </select>
+      <label for="node-input-operation"
+          ><i class="fa fa-code"></i> Operation</label
+      >
+      <input
+          type="text"
+          id="node-input-operation"
+          placeholder="msg.operation"
+      />
   </div>
   <div class="form-row">
-    <input
-        type="checkbox"
-        id="node-input-handleDocId"
-        style="display: inline-block; width: auto; vertical-align: top;"
-    />
-    <label
-        for="node-input-handleDocId"
-        style="width: auto;"
-        >Handle document _id</label
-    >
+      <label for="node-input-output"
+          ><i class="fa fa-sign-out"></i> Output</label
+      >
+      <select id="node-input-output">
+          <option value="toArray">toArray</option>
+          <option value="forEach">forEach</option>
+      </select>
   </div>
   <div class="form-row">
-    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name" />
+      <input
+          type="checkbox"
+          id="node-input-handleDocId"
+          style="display: inline-block; width: auto; vertical-align: top;"
+      />
+      <label for="node-input-handleDocId" style="width: auto;"
+          >Handle document _id</label
+      >
+  </div>
+  <div class="form-row">
+      <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+      <input type="text" id="node-input-name" placeholder="Name" />
   </div>
 </script>
 
@@ -315,9 +336,13 @@ Execute MongoDB collection operations with this node.
 
 : Connection (mongodb-client) : Select a MongoDB database server connection.
 
+: Mode | msg.mode (string) : Decide if you want to run a collection or db operation
+
 : Collection | msg.collection (string) : MongoDB database collection.
 
-: Operation | msg.operation (string) : A MongoDB Driver 4 collection CRUD operation for example `find`, `findOne`, `insertOne`, `updateOne`, `aggregate` and many more.
+: Operation | msg.operation (string) : Run a collection or database operation. 
+Examples for collection operation are CRUD like `find`, `findOne`, `insertOne`, `updateOne`, `aggregate` and many more. 
+Valid database operations are `command`, `ping`, `stats` and more.
 
 : msg.payload (array) : Pass the CRUD operation arguments as message payload. Message payload has to be array type to pass multiple function arguments to driver operation.
 Example: `msg.payload = [{name: 'marina'},{fields: {...}}]`. The payload array will be passed as function arguments for the MongoDB driver collection operation, like so: `collection.find({name: 'marina'}, {fields: {...}})`
@@ -335,6 +360,7 @@ So this will work:
 `msg.payload = [{_id: {$in: ["624b527d08e23628e99eb963"]}}]`
 
 ### More information about collection operations
+
 More information here:
 [Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
 

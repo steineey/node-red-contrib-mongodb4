@@ -8,7 +8,6 @@ module.exports = function (RED) {
         // node data
         node.n = {
             uri: null, // mongodb connection uri
-            dbName: n.dbName, // database name
             options: {}, // client options
             client: null, // client instance
         };
@@ -70,14 +69,9 @@ module.exports = function (RED) {
                 }
             }
 
-            node.n.client = new MongoClient(node.n.uri, node.n.options);
-
-            node.connect = function () {
-                return node.n.client.connect();
-            };
-
-            node.getDBName = function () {
-                return node.n.dbName;
+            node.getDatabase = function () {
+                node.n.client = new MongoClient(node.n.uri, node.n.options);
+                return node.n.client.db(n.dbName);
             };
         } catch (err) {
             node.error(err.message);
@@ -95,79 +89,92 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, n);
         var node = this;
         node.n = {
-            clientNode: RED.nodes.getNode(n.clientNode),
-            connection: null,
-            database: null,
-            counter: {
-                success: 0,
-                error: 0,
-            },
+            database: RED.nodes.getNode(n.clientNode).getDatabase(),
+            mode: n.mode,
             collection: n.collection,
             operation: n.operation,
             output: n.output,
             handleDocId: n.handleDocId,
+            counter: {
+                success: 0,
+                error: 0,
+            },
         };
 
-        node.n.handleError = function (err, msg, done) {
-            if (done) {
-                // Node-RED 1.0 compatible
-                done(err.message || err);
+        // connection test
+        node.n.database.command({ ping: 1 }).then((ping) => {
+            if (!ping || ping.ok !== 1) {
+                node.status({
+                    fill: "red",
+                    shape: "dot",
+                    text: "database ping failed",
+                });
             } else {
-                // Node-RED 0.x compatible
-                node.error(err.message || err, msg);
+                node.status({
+                    fill: "green",
+                    shape: "dot",
+                    text: "connected",
+                });
             }
-        };
+        });
 
-        node.n.handleInput = async function (msg, send, done) {
+        node.on("input", async function (msg, send, done) {
             try {
-                // get mongodb collection
-                var cn = msg.collection || node.n.collection;
-                if (!cn) {
-                    throw new Error("Collection name undefined.");
+                var dbElement;
+                if ((msg.mode || node.n.mode) === "db") {
+                    // database operation mode
+                    dbElement = node.n.database;
+                } else {
+                    // default mode is collection operation mode
+                    // get mongodb collection
+                    var cn = msg.collection || node.n.collection;
+                    if (!cn) {
+                        throw Error("collection name undefined");
+                    }
+                    dbElement = node.n.database.collection(cn);
                 }
-
-                // get mongodb collection
-                var collection = node.n.database.collection(cn);
 
                 // get mongodb operation
                 var operation = msg.operation || node.n.operation;
                 if (!operation) {
-                    throw new Error("Collection operation undefined.");
+                    throw Error("collection operation undefined");
                 }
 
                 // check if mongodb collection has operation
-                if (typeof collection[operation] !== "function") {
-                    throw new Error(
-                        `Unsupported collection operation: "${operation}"`
-                    );
+                if (typeof dbElement[operation] !== "function") {
+                    throw Error(`unknown operation: "${operation}"`);
                 }
 
-                // payload has to be array type
-                if (!Array.isArray(msg.payload)) {
-                    throw new Error("Payload is missing or not array type.");
-                }
-
-                if (node.n.handleDocId) {
-                    try {
-                        // handle mongodb document id
-                        handleDocumentId(msg.payload, false);
-                    } catch (warn) {
-                        // on error set warning and continue
-                        console.warn(
-                            "mongodb4-operation: document _id fix failed; " +
-                                warn.message
-                        );
+                var request;
+                if (Array.isArray(msg.payload)) {
+                    if (node.n.handleDocId) {
+                        try {
+                            // handle mongodb document id
+                            handleDocumentId(msg.payload, false);
+                        } catch (warn) {
+                            // on error set warning and continue
+                            console.warn(
+                                "mongodb4-operation: document _id fix failed; " +
+                                    warn.message
+                            );
+                        }
                     }
+                    request = dbElement[operation](...msg.payload);
+                } else if (
+                    typeof msg.payload === "object" ||
+                    typeof msg.payload === "string" ||
+                    typeof msg.payload === "number"
+                ) {
+                    request = dbElement[operation](msg.payload);
+                } else {
+                    request = dbElement[operation]();
                 }
-
-                // execute mongodb operation
-                var request = collection[operation](...msg.payload);
 
                 // output handling on aggregate or find operation
                 if (operation === "aggregate" || operation === "find") {
                     switch (node.n.output) {
                         case "forEach":
-                            await request.forEach(function (payload) {
+                            await request.forEach((payload) => {
                                 send({ ...msg, payload: payload });
                             });
                             break;
@@ -177,6 +184,10 @@ module.exports = function (RED) {
                             msg.payload = await request.toArray();
                             send(msg);
                     }
+                } else if (operation === "watch") {
+                    request.on("change", (payload) => {
+                        node.send({ ...msg, payload: payload });
+                    });
                 } else {
                     msg.payload = await request;
                     send(msg);
@@ -198,73 +209,12 @@ module.exports = function (RED) {
                 node.n.counter.error++;
                 node.status({
                     fill: "red",
-                    shape: "ring",
+                    shape: "dot",
                     text: "operation error",
                 });
-                node.n.handleError(err, msg, done);
-            }
-        };
-
-        node.on("input", function (msg, send, done) {
-            send =
-                send ||
-                function () {
-                    node.send.apply(node, arguments);
-                };
-
-            if (node.n.database) {
-                // continue with operation
-                node.n.handleInput(msg, send, done);
-            } else if (node.n.connecting) {
-                // wait for connection
-                node.n.connecting.then((success) => {
-                    if (success) {
-                        node.n.handleInput(msg, send, done);
-                    } else {
-                        node.n.handleError("Connection error.", msg, done);
-                    }
-                });
-            } else {
-                node.n.handleError("Not connected.", msg, done);
+                done(err);
             }
         });
-
-        node.n.connect = async function () {
-            node.status({ fill: "yellow", shape: "ring", text: "connecting" });
-            try {
-                node.n.connection = await node.n.clientNode.connect();
-                node.n.database = node.n.connection.db(
-                    node.n.clientNode.getDBName()
-                );
-
-                // ping test
-                var ping = await node.n.database.command({ ping: 1 });
-                if (!ping || ping.ok !== 1) {
-                    throw new Error("Ping database server failed.");
-                }
-                node.n.connecting = null;
-                node.status({ fill: "green", shape: "dot", text: "connected" });
-                return true;
-            } catch (err) {
-                // error on connection
-                node.n.connecting = null;
-                node.status({
-                    fill: "red",
-                    shape: "ring",
-                    text: "connection error",
-                });
-                node.n.handleError(err, null, null);
-                return false;
-            }
-        };
-
-        if (node.n.clientNode && node.n.clientNode.connect) {
-            // connect async
-            node.n.connecting = node.n.connect();
-        } else {
-            node.status({ fill: "red", shape: "ring", text: "config error" });
-            node.n.handleError("Configuration node error.", null, null);
-        }
 
         node.on("close", function (removed, done) {
             if (node.n.connection) {
