@@ -3,7 +3,7 @@ A MongoDB client node for Node-Red powered by MongoDB Driver V4
 
 This package includes two nodes for node-red:
 * A configuration node which defines a connection to a MongoDB database server.
-* A flow node to execute every MongoDB collection operation supported by MongoDB Driver 4.
+* A flow node to execute every MongoDB collection or db operation supported by MongoDB Driver 4.
 
 This node was inspired by other projects like [node-red-contrib-mongodb3](https://github.com/ozomer/node-red-contrib-mongodb2) or [node-red-node-mongodb](https://flows.nodered.org/node/node-red-node-mongodb).
 
@@ -15,8 +15,9 @@ You will also need a node-red version with NodeJS v12 or v14.
 
 ## Installation
 Navigate to your .node-red directory - typically `~/.node-red`.
+
 ```
-  npm install node-red-contrib-mongodb4
+  npm install --save node-red-contrib-mongodb4
 ```
 
 ## Usage Example
