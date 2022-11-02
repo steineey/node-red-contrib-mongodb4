@@ -12,6 +12,16 @@ module.exports = function (RED) {
             client: null, // client instance
         };
 
+        node.on("close", function (removed, done) {
+            done = done || function() {};
+            if (node.n.client) {
+                node.n.client.close().then(done);
+            }
+            else {
+                done();
+            }
+        });
+
         try {
             if (n.uriTabActive === "tab-uri-advanced") {
                 if (n.uri) {
