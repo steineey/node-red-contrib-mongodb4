@@ -5,19 +5,17 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, n);
         var node = this;
 
-        // node data
         node.n = {
             uri: null, // mongodb connection uri
-            options: {}, // client options
-            client: null, // client instance
+            options: {}, // mongodb client options
+            client: null, // mongodb client instance
         };
 
         node.on("close", function (removed, done) {
-            done = done || function() {};
+            done = done || function () {};
             if (node.n.client) {
                 node.n.client.close().then(done);
-            }
-            else {
+            } else {
                 done();
             }
         });
@@ -79,13 +77,19 @@ module.exports = function (RED) {
                 }
             }
 
-            node.getDatabase = function () {
-                node.n.client = new MongoClient(node.n.uri, node.n.options);
-                return node.n.client.db(n.dbName);
-            };
+            node.n.client = new MongoClient(node.n.uri, node.n.options);
+
         } catch (err) {
             node.error(err.message);
         }
+
+        node.getDatabase = function () {
+            if(node.n.client) {
+                return node.n.client.db(n.dbName);
+            }else{
+                return null;
+            }
+        };
     }
 
     RED.nodes.registerType("mongodb4-client", ClientNode, {
@@ -108,27 +112,49 @@ module.exports = function (RED) {
             counter: {
                 success: 0,
                 error: 0,
-            },
+            }
         };
 
-        // connection test
-        node.n.database.command({ ping: 1 }).then((ping) => {
-            if (!ping || ping.ok !== 1) {
+        node.ping = async function(database) {
+            try {
+                var ping = await database.command({ ping: 1 });
+                if (ping && ping.ok === 1) {
+                    node.status({
+                        fill: "green",
+                        shape: "dot",
+                        text: "connected",
+                    });
+                } else {
+                    throw Error("ping failed");
+                }
+            }catch(err){
+                node.error(err);
                 node.status({
                     fill: "red",
                     shape: "dot",
-                    text: "database ping failed",
-                });
-            } else {
-                node.status({
-                    fill: "green",
-                    shape: "dot",
-                    text: "connected",
+                    text: "ping failed",
                 });
             }
-        });
+        }
 
+        // connection test
+        if(node.n.database) {
+            node.ping(node.n.database);
+        }else{
+            node.status({
+                fill: "red",
+                shape: "dot",
+                text: "config node error"
+            });
+        }
+        
         node.on("input", async function (msg, send, done) {
+
+            if(node.n.database === null) {
+                done(new Error("config node error"));
+                return;
+            }
+
             try {
                 var dbElement;
                 if ((msg.mode || node.n.mode) === "db") {
@@ -223,15 +249,6 @@ module.exports = function (RED) {
                     text: "operation error",
                 });
                 done(err);
-            }
-        });
-
-        node.on("close", function (removed, done) {
-            if (node.n.connection) {
-                node.n.connection.close();
-            }
-            if (done) {
-                done();
             }
         });
     }
