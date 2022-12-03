@@ -1,13 +1,18 @@
 # node-red-contrib-mongodb4
-A MongoDB client node for Node-Red powered by MongoDB Driver V4.
+A MongoDB node for Node-Red without limitations.
 
 This package includes two nodes for node-red:
-* A configuration node which defines a connection to a MongoDB database server.
-* A flow node to execute every MongoDB collection or db operation supported by MongoDB Driver 4.
 
-This package was developed to use all the features of the native MongoDB driver without any limitations.
+**The Config Node** \
+Connect to your local MongoDB Server or a MongoDB Atlas cluster.
+![client-node](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/config-node.png?raw=true) 
 
-This node was inspired by other projects like [node-red-contrib-mongodb3](https://github.com/ozomer/node-red-contrib-mongodb2) or [node-red-node-mongodb](https://flows.nodered.org/node/node-red-node-mongodb).
+**The Flow Node** \
+Execute a database or collection operation within your flow. This node was developed to use all the features of the native MongoDB driver without any limitations.
+![basic-flow](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/basic-flow.png?raw=true)
+![flow-node](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/operation-node.png?raw=true)
+
+*This node was inspired by other projects like [node-red-contrib-mongodb3](https://github.com/ozomer/node-red-contrib-mongodb2) or [node-red-node-mongodb](https://flows.nodered.org/node/node-red-node-mongodb).*
 
 ## Compatibility
 This MongoDB Node is compatible with the following MongoDB Server versions:
@@ -26,9 +31,8 @@ Navigate to your .node-red directory - typically `~/.node-red`.
 Import the example flow to get a quick introduction how to use this node. \
 [flow.json](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/example-1.json) \
 \
-![flow-image](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/example-1-flow.png) \
-\
-![flow-image](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/example-1-config.png)
+![flow-image](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/example-1-flow.png?raw=true)
+
 
 ## The Configuration Node
 Configuration node for MongoDB connection config.
@@ -80,7 +84,7 @@ This node will create a MongoDB client, with a connection pool for operation nod
 Each configuration node has his own connection pool with a default max poolsize of 100 connection at a given time. More parallel connections / operations will be queued and processed synchronous. In this scenario slow operations will delay fast operations. You can create more separat connection pools with more configuration nodes. [More Information](https://docs.mongodb.com/drivers/node/current/faq/#how-can-i-prevent-a-slow-operation-from-delaying-other-operations-)
 
 
-## The operation Node
+## The Flow Node
 
 Execute MongoDB collection operations with this node.
 
