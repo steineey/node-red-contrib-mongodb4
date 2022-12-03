@@ -1,9 +1,11 @@
 # node-red-contrib-mongodb4
-A MongoDB client node for Node-Red powered by MongoDB Driver V4
+A MongoDB client node for Node-Red powered by MongoDB Driver V4.
 
 This package includes two nodes for node-red:
 * A configuration node which defines a connection to a MongoDB database server.
 * A flow node to execute every MongoDB collection or db operation supported by MongoDB Driver 4.
+
+This package was developed to use all the features of the native MongoDB driver without any limitations.
 
 This node was inspired by other projects like [node-red-contrib-mongodb3](https://github.com/ozomer/node-red-contrib-mongodb2) or [node-red-node-mongodb](https://flows.nodered.org/node/node-red-node-mongodb).
 
@@ -11,7 +13,7 @@ This node was inspired by other projects like [node-red-contrib-mongodb3](https:
 This MongoDB Node is compatible with the following MongoDB Server versions:
 6.0, 5.0, 4.4, 4.2, 4.0, 3.6
 
-You will also need a node-red version with NodeJS v12 or v14.
+You will also need a node-red version with NodeJS >= v12.
 
 ## Installation
 Navigate to your .node-red directory - typically `~/.node-red`.
@@ -117,8 +119,48 @@ More information here:
 
 Pass the CRUD operation arguments as message payload.
 Message payload has to be array type to pass multiple function arguments to driver operation.
-Example: `msg.payload = [{name: 'marina'},{fields: {...}}]`.
-The payload array will be passed as function arguments for the MongoDB driver collection operation, like so: `collection.find({name: 'marina'}, {fields: {...}})`
+
+Example to prepare a find query:
+```js
+// find query argument
+const query = {
+  age: 22
+};
+// find option argument
+const options = {
+  sort: {name: 1}, 
+  projection: {name: 1},
+  limit: 10,
+  skip: 2
+};
+// payload for mongodb4 node
+msg.payload = [query, options];
+return msg;
+```
+The payload array will be passed as function arguments for the MongoDB driver collection operation
+: `collection.find({age: 22}, {sort: {...}})`
+
+Another example for an aggregation call:
+```js
+// aggregation pipeline
+const pipeline = [{
+    $sort:{age: 1}
+}, {
+    $project: {
+        name: 1
+    }
+},{
+    $limit: 10
+}];
+// optional: aggregate options
+const options = {
+    allowDiskUse: true
+};
+// payload for mongodb4 node
+msg.payload = [pipeline, options];
+return msg;
+```
+In a simple aggregation call you have an array inside array like `msg.payload = [pipeline]`. This might be confusing, but I haven't found a better solution for that.
 
 More information here:
 [Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
