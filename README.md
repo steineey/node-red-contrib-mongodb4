@@ -5,12 +5,12 @@ This package includes two nodes for node-red:
 
 **The Config Node** \
 Connect to your local MongoDB Server or a MongoDB Atlas cluster.
-![client-node](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/config-node.png?raw=true) 
+![client-node](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/config-node.png)
 
 **The Flow Node** \
 Execute a database or collection operation within your flow. This node was developed to use all the features of the native MongoDB driver without any limitations.
-![basic-flow](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/basic-flow.png?raw=true)
-![flow-node](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/operation-node.png?raw=true)
+![basic-flow](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/basic-flow.png)
+![flow-node](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/operation-node.png)
 
 *This node was inspired by other projects like [node-red-contrib-mongodb3](https://github.com/ozomer/node-red-contrib-mongodb2) or [node-red-node-mongodb](https://flows.nodered.org/node/node-red-node-mongodb).*
 
@@ -31,7 +31,7 @@ Navigate to your .node-red directory - typically `~/.node-red`.
 Import the example flow to get a quick introduction how to use this node. \
 [flow.json](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/example-1.json) \
 \
-![flow-image](https://github.com/steineey/node-red-contrib-mongodb4/blob/master/examples/example-1-flow.png?raw=true)
+![flow-image](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/example-1-flow.png)
 
 
 ## The Configuration Node
