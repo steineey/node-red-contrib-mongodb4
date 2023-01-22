@@ -1,5 +1,11 @@
 # node-red-contrib-mongodb4
+
 A MongoDB node for Node-Red without limitations.
+
+[![npm version](https://img.shields.io/npm/v/node-red-contrib-mongodb4.svg?style=flat-square)](https://www.npmjs.org/package/node-red-contrib-mongodb4)
+[![install size](https://img.shields.io/badge/dynamic/json?url=https://packagephobia.com/v2/api.json?p=node-red-contrib-mongodb4&query=$.install.pretty&label=install%20size&style=flat-square)](https://packagephobia.now.sh/result?p=node-red-contrib-mongodb4)
+[![npm downloads](https://img.shields.io/npm/dm/node-red-contrib-mongodb4.svg?style=flat-square)](https://npm-stat.com/charts.html?package=node-red-contrib-mongodb4)
+[![Known Vulnerabilities](https://snyk.io/test/npm/node-red-contrib-mongodb4/badge.svg)](https://snyk.io/test/npm/node-red-contrib-mongodb4)
 
 This package includes two nodes for node-red:
 
