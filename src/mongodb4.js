@@ -1,9 +1,13 @@
 module.exports = function (RED) {
     var { MongoClient, ObjectId } = require("mongodb");
 
+    function randStr(){
+        return Math.floor(Math.random() * Date.now()).toString(36);
+    }  
+
     function ClientNode(n) {
         RED.nodes.createNode(this, n);
-        var node = this;
+        const node = this;
 
         node.n = {
             uri: null, // mongodb connection uri
@@ -11,16 +15,19 @@ module.exports = function (RED) {
             client: null, // mongodb client instance
         };
 
-        node.on("close", function (removed, done) {
+        node.on("close", async function (removed, done) {
             done = done || function () {};
             if (node.n.client) {
-                node.n.client.close().then(done);
-            } else {
-                done();
+                // close client and all open connections
+                await node.n.client.close();
+                node.log("client closed");
             }
+            done();
         });
 
         try {
+
+            // prepare mongodb connection uri
             if (n.uriTabActive === "tab-uri-advanced") {
                 if (n.uri) {
                     node.n.uri = n.uri;
@@ -38,46 +45,50 @@ module.exports = function (RED) {
             }
 
             // mongo client authentication
+            let auth = null;
             if (node.credentials.username || node.credentials.password) {
-                node.n.options.auth = {};
+                auth = {
+                    username: node.credentials.username || '',
+                    password: node.credentials.password || ''
+                };
             }
 
-            if (node.credentials.username)
-                node.n.options.auth.username = node.credentials.username;
-            if (node.credentials.password)
-                node.n.options.auth.password = node.credentials.password;
-
-            // authentication mechanism
-            if (n.authMechanism) node.n.options.authMechanism = n.authMechanism;
-
-            // authentication source
-            if (n.authSource) node.n.options.authSource = n.authSource;
-
-            // tls settings
-            if (n.tls) node.n.options.tls = n.tls;
-            if (n.tlsCAFile) node.n.options.tlsCAFile = n.tlsCAFile;
-            if (n.tlsCertificateKeyFile)
-                node.n.options.tlsCertificateKeyFile = n.tlsCertificateKeyFile;
-            if (node.credentials.tlsCertificateKeyFilePassword) {
-                node.n.options.tlsCertificateKeyFilePassword =
-                    node.credentials.tlsCertificateKeyFilePassword;
-            }
-            if (n.tlsInsecure) node.n.options.tlsInsecure = n.tlsInsecure;
-
-            // parse advanced options as json
-            if (n.advanced) {
-                try {
-                    var advanced = JSON.parse(n.advanced);
-                    node.n.options = {
-                        ...node.n.options,
-                        ...advanced,
-                    };
-                } catch (err) {
-                    throw new Error("Parsing advanced options JSON failed.");
-                }
+            // user can define more options with json input
+            let advanced = {};
+            try {
+                advanced = JSON.parse(n.advanced || "{}");
+            } catch (err) {
+                throw new Error("Parsing advanced options JSON failed.");
             }
 
+            // app name will be printed in db server log upon establishing each connection
+            const appName = n.appName || `nodered-${randStr()}`;
+
+            // connection options
+            node.n.options = {
+                ...node.n.options,
+                appName: appName,
+                auth: auth,
+                authMechanism: n.authMechanism || undefined,
+                authSource: n.authSource || undefined,
+                tls: n.tls || undefined,
+                tlsCAFile: n.tlsCAFile || undefined,
+                tlsCertificateKeyFile: n.tlsCertificateKeyFile || undefined,
+                tlsCertificateKeyFilePassword: n.tlsCertificateKeyFilePassword || undefined,
+                tlsInsecure: n.tlsInsecure || undefined,
+                connectTimeoutMS: parseInt(n.connectTimeoutMS || "30000", 10),
+                socketTimeoutMS: parseInt(n.socketTimeoutMS || "0", 10),
+                minPoolSize: parseInt(n.minPoolSize || "0", 10),
+                maxPoolSize: parseInt(n.maxPoolSize || "100", 10),
+                maxIdleTimeMS: parseInt(n.maxIdleTimeMS || "0", 10),
+                ...advanced // custom options will overwrite other options
+            };
+
+            // console.log(n, node.n.options);
+
+            // initialize mongo client instance
             node.n.client = new MongoClient(node.n.uri, node.n.options);
+            node.log(`client initialized with app name '${appName}'`);
 
         } catch (err) {
             node.error(err.message);
@@ -101,13 +112,14 @@ module.exports = function (RED) {
 
     function OperationNode(n) {
         RED.nodes.createNode(this, n);
-        var node = this;
+        const node = this;
         node.n = {
             database: RED.nodes.getNode(n.clientNode).getDatabase(),
             mode: n.mode,
             collection: n.collection,
             operation: n.operation,
             output: n.output,
+            maxTimeMS: n.maxTimeMS,
             handleDocId: n.handleDocId,
             counter: {
                 success: 0,
@@ -156,14 +168,14 @@ module.exports = function (RED) {
             }
 
             try {
-                var dbElement;
+                let dbElement;
                 if ((msg.mode || node.n.mode) === "db") {
                     // database operation mode
                     dbElement = node.n.database;
                 } else {
                     // default mode is collection operation mode
                     // get mongodb collection
-                    var cn = msg.collection || node.n.collection;
+                    const cn = msg.collection || node.n.collection;
                     if (!cn) {
                         throw Error("collection name undefined");
                     }
@@ -171,40 +183,41 @@ module.exports = function (RED) {
                 }
 
                 // get mongodb operation
-                var operation = msg.operation || node.n.operation;
+                const operation = msg.operation || node.n.operation;
                 if (!operation) {
-                    throw Error("collection operation undefined");
+                    throw Error("operation undefined");
                 }
 
                 // check if mongodb collection has operation
                 if (typeof dbElement[operation] !== "function") {
-                    throw Error(`unknown operation: "${operation}"`);
+                    throw Error(`unknown operation: '${operation}'`);
                 }
 
-                var request;
-                if (Array.isArray(msg.payload)) {
-                    if (node.n.handleDocId) {
-                        try {
-                            // handle mongodb document id
-                            handleDocumentId(msg.payload, false);
-                        } catch (warn) {
-                            // on error set warning and continue
-                            console.warn(
-                                "mongodb4-operation: document _id fix failed; " +
-                                    warn.message
-                            );
-                        }
-                    }
-                    request = dbElement[operation](...msg.payload);
-                } else if (
-                    typeof msg.payload === "object" ||
-                    typeof msg.payload === "string" ||
-                    typeof msg.payload === "number"
-                ) {
-                    request = dbElement[operation](msg.payload);
-                } else {
-                    request = dbElement[operation]();
+                // prepare request arguments
+                let requestArg = [];
+                if (msg.payload && !Array.isArray(msg.payload)) {
+                    requestArg = [ msg.payload ];
+                }else if(msg.payload) {
+                    requestArg = msg.payload;
                 }
+
+                const maxTimeMS = parseInt(node.n.maxTimeMS || "0", 10);
+                if(maxTimeMS > 0) {
+                    setMaxTimeMS(operation, requestArg, maxTimeMS);
+                }
+
+                // experimentel feature
+                if (node.n.handleDocId) {
+                    try {
+                        // handle mongodb document id
+                        handleDocumentId(requestArg, false);
+                    } catch (err) {
+                        // on error set warning and continue
+                        throw Error(`document _id handling failed ${err.message}`);
+                    }
+                }
+
+                const request = dbElement[operation](...requestArg);
 
                 // output handling on aggregate or find operation
                 if (operation === "aggregate" || operation === "find") {
@@ -263,7 +276,7 @@ module.exports = function (RED) {
                     typeof value === "string" &&
                     ObjectId.isValid(value)
                 ) {
-                    queryObj[key] = ObjectId(value);
+                    queryObj[key] = new ObjectId(value);
                 } else if (typeof value === "object") {
                     if (key === "_id") {
                         keyWasId = true;
@@ -272,6 +285,42 @@ module.exports = function (RED) {
                 }
             }
         }
+    }
+
+    function setMaxTimeMS(operation, payload, maxTimeMS) {
+        let argi = 0;
+        switch(operation) {
+            case 'stats':
+                argi = 0;
+                break;
+            case 'insertOne':
+            case 'insertMany':
+            case 'find':
+            case 'findOne':
+            case 'aggregate':
+            case 'findOneAndDelete':
+            case 'deleteOne':
+            case 'deleteMany':
+            case 'count':
+            case 'countDocuments':
+                argi = 1;
+                break;
+            case 'replaceOne':
+            case 'updateOne':
+            case 'updateMany':
+            case 'findOneAndUpdate':
+            case 'findOneAndReplace':
+                argi = 2;
+                break;
+            default:
+                throw Error(`this node can't set maxTimeMS for operation '${operation}'. Use msg.payload instead.`);
+        }
+        
+        if(typeof payload[argi] !== 'object') {
+            payload[argi] = {};
+        }
+
+        payload[argi].maxTimeMS = maxTimeMS;
     }
 
     RED.nodes.registerType("mongodb4", OperationNode);

@@ -1,7 +1,6 @@
 var should = require("should");
 var helper = require("node-red-node-test-helper");
 var mongodbNode = require("../src/mongodb4.js");
-var uid = require("uuid").v4();
 var testConfig = require("./config.json");
 const { ObjectId } = require("mongodb");
 
@@ -26,6 +25,7 @@ function getOperationNode() {
         clientNode: "config-node",
         collection: testConfig.collection,
         handleDocId: true,
+        maxTimeMS: "0",
         output: "toArray",
         wires: [["helper-node"]],
     };
@@ -85,7 +85,7 @@ describe("testing mongodb4 nodes", function () {
                 });
 
                 operationNode.receive({
-                    payload: [{ uid: uid }],
+                    payload: [{ foo: 'bar' }],
                     collection: testConfig.collection,
                     operation: "insertOne",
                 });
@@ -97,7 +97,7 @@ describe("testing mongodb4 nodes", function () {
         );
     });
 
-    it("implicit ObjectId", function (done) {
+    it("document _id", function (done) {
         helper.load(
             mongodbNode,
             testFlow,
@@ -106,42 +106,21 @@ describe("testing mongodb4 nodes", function () {
                 var helperNode = helper.getNode("helper-node");
                 var operationNode = helper.getNode("operation-node");
 
-                // step 1
-                operationNode.receive({
-                    payload: [{}],
-                    collection: testConfig.collection,
-                    operation: "deleteMany",
+                helperNode.on("input", function (msg) {
+                    try {
+                        msg.should.have.property("payload");
+                        msg.payload.should.have.property("insertedId").and.be.an.instanceOf(ObjectId)
+                        msg.payload.should.have.property("acknowledged", true);
+                        done();
+                    } catch (err) {
+                        done(err);
+                    }
                 });
 
-                helperNode.on("input", function (msg) {
-                    if (msg.operation === "deleteMany") {
-                        // after delete many
-                        operationNode.receive({
-                            payload: [
-                                {
-                                    _id: ObjectId("624b3c625a145193099962d1"),
-                                    success: true,
-                                },
-                            ],
-                            collection: testConfig.collection,
-                            operation: "insertOne",
-                        });
-                        return;
-                    } else if (msg.operation === "insertOne") {
-                        // after insertOne
-                        operationNode.receive({
-                            payload: [{ _id: "624b3c625a145193099962d1" }],
-                            collection: testConfig.collection,
-                            operation: "findOne",
-                        });
-                        return;
-                    } else if (msg.operation === "findOne") {
-                        msg.should.have.property("payload");
-                        msg.payload.should.have.property("success");
-                        done();
-                    } else {
-                        done(new Error("invalid input"));
-                    }
+                operationNode.receive({
+                    payload: [{ _id: new ObjectId().toString() }],
+                    collection: testConfig.collection,
+                    operation: "insertOne",
                 });
 
                 operationNode.on("call:error", (call) => {
@@ -240,7 +219,7 @@ describe("testing mongodb4 nodes", function () {
                 var operationNode = helper.getNode("operation-node");
 
                 operationNode.receive({
-                    payload: [{ $fail: uid }],
+                    payload: [{ $fail: 'foo bar' }],
                     collection: testConfig.collection,
                     operation: "findOne",
                 });
@@ -261,7 +240,7 @@ describe("testing mongodb4 nodes", function () {
                 var operationNode = helper.getNode("operation-node");
 
                 operationNode.receive({
-                    payload: [{ uid: uid }],
+                    payload: [{ foo: 'bar' }],
                     collection: testConfig.collection,
                     operation: "willFail",
                 });
@@ -270,13 +249,12 @@ describe("testing mongodb4 nodes", function () {
                     try {
                         should(call.firstArg).have.property(
                             "message",
-                            'unknown operation: "willFail"'
+                            "unknown operation: 'willFail'"
                         );
+                        done();
                     }catch(err){
                         done(err);
                     }
-                    
-                    done();
                 });
             }
         );

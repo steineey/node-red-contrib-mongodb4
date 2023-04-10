@@ -5,7 +5,6 @@ A MongoDB node for Node-Red without limitations.
 [![npm version](https://img.shields.io/npm/v/node-red-contrib-mongodb4.svg?style=flat-square)](https://www.npmjs.org/package/node-red-contrib-mongodb4)
 [![install size](https://img.shields.io/badge/dynamic/json?url=https://packagephobia.com/v2/api.json?p=node-red-contrib-mongodb4&query=$.install.pretty&label=install%20size&style=flat-square)](https://packagephobia.now.sh/result?p=node-red-contrib-mongodb4)
 [![npm downloads](https://img.shields.io/npm/dm/node-red-contrib-mongodb4.svg?style=flat-square)](https://npm-stat.com/charts.html?package=node-red-contrib-mongodb4)
-[![Known Vulnerabilities](https://snyk.io/test/npm/node-red-contrib-mongodb4/badge.svg)](https://snyk.io/test/npm/node-red-contrib-mongodb4)
 
 This package includes two nodes for node-red:
 
@@ -30,8 +29,6 @@ Navigate to your .node-red directory - typically `~/.node-red`.
 npm install --save --omit=dev node-red-contrib-mongodb4
 ```
 
-You can also install the package from the 
-
 ## Compatibility
 
 This MongoDB Node is compatible with the following MongoDB Server versions:
@@ -53,13 +50,14 @@ The upgraded driver removes support for the Collection.insert(), Collection.upda
 * Migrate from Collection.remove() to deleteOne() or deleteMany()
 
 ## Usage Example
+
 Import the example flow to get a quick introduction how to use this node. \
 [flow.json](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/example-1.json) \
 \
 ![flow-image](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/example-1-flow.png)
 
-
 ## The Configuration Node
+
 Configuration node for MongoDB connection config.
 This node will create a MongoDB client, with a connection pool for operation nodes.
 
@@ -92,9 +90,20 @@ This node will create a MongoDB client, with a connection pool for operation nod
 
 : Application Name (string) : The name of the application that created this MongoClient instance. MongoDB 3.4 and newer will print this value in the server log upon establishing each connection. It is also recorded in the slow query log and profile collections.
 
-If this field is unspecified, the client node will create a app name for you. That looks like this for example: `nodered-azmr5z97`. The prefix `nodered` is static. The second part, here `azmr5z97` is a random string, created on runtime start-up, config-node update and full deployment.
+If this field is unspecified, the client node will create a app name for you. 
+That looks like this: `nodered-azmr5z97`. The prefix `nodered` is static. `azmr5z97` is a random connection pool id, created on runtime start-up, config-node update and full deployment.
 
 The current app name of a config node is logged to the node-red runtime log.
+
+Check the current db connections with this query:
+```js
+db.currentOp(true).inprog.reduce((accumulator, connection) => {
+    const appName = connection.appName || "unknown";
+    accumulator[appName] = (accumulator[appName] || 0) + 1;
+    accumulator.totalCount ++;
+    return accumulator;
+  }, {totalCount: 0})
+```
 
 ### TLS (optional)
 
@@ -121,7 +130,7 @@ If you set the value of ConnectTimeoutMS or SocketTimeoutMS to 0, your applicati
 ### More Options
 
 : Options (JSON) : MongoDB Driver 4 MongoClient supports more options. Feel free to overwrite all client options with your own.
-[Read the docs: MongoClientOptions](https://mongodb.github.io/node-mongodb-native/4.2/interfaces/MongoClientOptions.html)
+[Read the docs: MongoClientOptions](https://mongodb.github.io/node-mongodb-native/5.2/interfaces/MongoClientOptions.html)
 
 ### Database
 
@@ -144,38 +153,21 @@ Execute MongoDB collection operations with this node.
 : Collection | msg.collection (string) : MongoDB database collection.
 
 : Operation | msg.operation (string) : Run a collection or database operation. 
+
 Common collection operations are `find`, `findOne`, `insertOne`, `insertMany`, `updateOne`, `updateMany`, `deleteOne`, `deleteMany`, `aggregate` and more.
-`insert`, `update` and `delete` are deprecated and not supported by the latest mongodb driver version. Read the upgrade instructions for more information.
+
+`insert`, `update` and `delete` are deprecated and not supported by the latest mongodb driver version. Read the [upgrade instructions](https://github.com/steineey/node-red-contrib-mongodb4#upgrade-to-package-version-v2x) for more information.
 
 Common database operations are `command`, `ping`, `stats` and more.
 
-: msg.payload (array) : Pass the CRUD operation arguments as message payload. Message payload has to be array type to pass multiple function arguments to driver operation.
-Example: `msg.payload = [{name: 'marina'},{fields: {...}}]`. The payload array will be passed as function arguments for the MongoDB driver collection operation, like so: `collection.find({name: 'marina'}, {fields: {...}})`
+: msg.payload (array) : Pass the CRUD operation arguments as message payload. Message payload has to be array type to pass multiple function arguments to a driver operation.
 
-: Output (string) : For `find` and `aggregate` operation. Choose `toArray` or `forEach` output type.
+Example `insertOne`:
+```js
+msg.payload = [{name: 'Anna', age: 1}];
+```
 
-: MaxTimeMS (integer) : MaxTimeMS Specifies the maximum amount of time the server should wait for an operation to complete after it has reached the server. If an operation runs over the specified time limit, it returns a timeout error. Prevent long-running operations from slowing down the server by specifying a timeout value. Specifying 0 means no timeout.
-
-: Handle document \_id (bool) : With this feature enabled, the operation node will convert a document \_id of type string to a document \_id of type ObjectId.
-
-The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like: `msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`
-
-This mongodb node can handle this for you. If the string is a valid ObjectId, it will be translated into a real ObjectId before executed by the native driver.
-So this will work:
-`msg.payload = [{_id: "624b527d08e23628e99eb963"}]`
-...and this will also work:
-`msg.payload = [{_id: {$in: ["624b527d08e23628e99eb963"]}}]`
-
-### More information about collection operations
-More information here:
-[Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
-
-### Payload input
-
-Pass the CRUD operation arguments as message payload.
-Message payload has to be array type to pass multiple function arguments to driver operation.
-
-Example to prepare a find query:
+Example `find`:
 ```js
 // find query argument
 const query = {
@@ -192,6 +184,7 @@ const options = {
 msg.payload = [query, options];
 return msg;
 ```
+
 The payload array will be passed as function arguments for the MongoDB driver collection operation
 : `collection.find({age: 22}, {sort: {...}})`
 
@@ -215,10 +208,27 @@ const options = {
 msg.payload = [pipeline, options];
 return msg;
 ```
+
 In a simple aggregation call you have an array inside array like `msg.payload = [pipeline]`. This might be confusing, but I haven't found a better solution for that.
 
+: Output (string) : For `find` and `aggregate` operation. Choose `toArray` or `forEach` output type.
+
+: MaxTimeMS (integer) : MaxTimeMS Specifies the maximum amount of time the server should wait for an operation to complete after it has reached the server. If an operation runs over the specified time limit, it returns a timeout error. Prevent long-running operations from slowing down the server by specifying a timeout value. Specifying 0 means no timeout.
+
+: Handle document \_id (bool) : With this feature enabled, the operation node will convert a document \_id of type string to a document \_id of type ObjectId.
+
+The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like: `msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`
+
+This mongodb node can handle this for you. If the string is a valid ObjectId, it will be translated into a real ObjectId before executed by the native driver.
+So this will work:
+`msg.payload = [{_id: "624b527d08e23628e99eb963"}]`
+...and this will also work:
+`msg.payload = [{_id: {$in: ["624b527d08e23628e99eb963"]}}]`
+
+### More information about collection operations
+
 More information here:
-[Collection-API](https://mongodb.github.io/node-mongodb-native/4.2/classes/Collection.html)
+[Collection-API v5.2](https://mongodb.github.io/node-mongodb-native/5.2/classes/Collection.html)
 
 ### Payload Output
 
@@ -227,4 +237,4 @@ The operations `aggregate` and `find` can output with `toArray` or `forEach`.
 
 ### More information
 
-[Visit the MongoDB Driver 4 Docs](https://docs.mongodb.com/drivers/node/current/)
+[Visit the MongoDB Driver Docs](https://docs.mongodb.com/drivers/node/current/)
