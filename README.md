@@ -9,29 +9,48 @@ A MongoDB node for Node-Red without limitations.
 
 This package includes two nodes for node-red:
 
-**The Config Node** \
+**The Config Node**
+
 Connect to your local MongoDB Server or a MongoDB Atlas cluster.
 ![client-node](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/config-node.png)
 
-**The Flow Node** \
+**The Flow Node**
+
 Execute a database or collection operation within your flow. This node was developed to use all the features of the native MongoDB driver without any limitations.
 ![basic-flow](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/basic-flow.png)
 ![flow-node](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/operation-node.png)
 
 *This node was inspired by other projects like [node-red-contrib-mongodb3](https://github.com/ozomer/node-red-contrib-mongodb2) or [node-red-node-mongodb](https://flows.nodered.org/node/node-red-node-mongodb).*
 
-## Compatibility
-This MongoDB Node is compatible with the following MongoDB Server versions:
-6.0, 5.0, 4.4, 4.2, 4.0, 3.6
-
-You will also need a node-red version with NodeJS >= v12.
-
 ## Installation
+
 Navigate to your .node-red directory - typically `~/.node-red`.
 
 ```
-  npm install --save node-red-contrib-mongodb4
+npm install --save --omit=dev node-red-contrib-mongodb4
 ```
+
+You can also install the package from the 
+
+## Compatibility
+
+This MongoDB Node is compatible with the following MongoDB Server versions:
+6.1, 6.0, 5.0, 4.4, 4.2, 4.0, 3.6
+
+Node-RED >= v2.0.0,  
+NodeJS >= v14.20.1.
+
+## Upgrade to Package Version V2.x
+
+Version 2.x of this package is now using the mongodb driver version 5.x.
+
+Driver versions 5.x are not compatible with Node.js v12 or earlier. If you want to use this version of the driver, you must use Node.js v14.20.1 or greater.
+
+The upgraded driver removes support for the Collection.insert(), Collection.update(), and Collection.remove() helper methods. The following list provides instructions on how to replace the functionality of the removed methods:
+
+* Migrate from Collection.insert() to insertOne() or insertMany()
+* Migrate from Collection.update() to updateOne() or updateMany()
+* Migrate from Collection.remove() to deleteOne() or deleteMany()
 
 ## Usage Example
 Import the example flow to get a quick introduction how to use this node. \
@@ -54,18 +73,28 @@ This node will create a MongoDB client, with a connection pool for operation nod
 
 ### Advanced Connection URI
 
-: URI (string) : This will overwrite `Protocol`, `Hostname` and `Port` with your own connection string.
+: URI (string) : Define your own connection string in URI format.
 [Read the docs: Connection String in URI Format](https://docs.mongodb.com/manual/reference/connection-string/)
 
-### Authentication
+### Authentication (optional)
 
 : Username (string) : Username for authentication.
 
 : Password (string) : Password for authentication.
 
+: AuthMech (string) : Specify the authentication mechanism that MongoDB will use to authenticate the connection. This will only be used in combination with username and password.
+
 : AuthSource (string) : Specify the database name associated with the user’s credentials.
 
-: AuthMech (string) : Specify the authentication mechanism that MongoDB will use to authenticate the connection.
+### Application
+
+: Database (string) : A MongoDB database name is required.
+
+: Application Name (string) : The name of the application that created this MongoClient instance. MongoDB 3.4 and newer will print this value in the server log upon establishing each connection. It is also recorded in the slow query log and profile collections.
+
+If this field is unspecified, the client node will create a app name for you. That looks like this for example: `nodered-azmr5z97`. The prefix `nodered` is static. The second part, here `azmr5z97` is a random string, created on runtime start-up, config-node update and full deployment.
+
+The current app name of a config node is logged to the node-red runtime log.
 
 ### TLS (optional)
 
@@ -76,6 +105,18 @@ This node will create a MongoDB client, with a connection pool for operation nod
 : TLS Certificate Key Filepassword (string) : Specifies the password to de-crypt the TLS certificate.
 
 : TLS-Insecure (bool) : Disables various certificate validations. THIS IS REALLY NOT SECURE.
+
+### Connect Options
+
+: ConnectTimeoutMS (integer) : Specifies the amount of time, in milliseconds, to wait to establish a single TCP socket connection to the server before raising an error.
+
+: SocketTimeoutMS (integer) : To make sure that the driver correctly closes the socket in these cases, set the SocketTimeoutMS option. When a MongoDB process times out, the driver will close the socket. We recommend that you select a value for socketTimeoutMS that is two to three times as long as the expected duration of the slowest operation that your application executes.
+
+If you set the value of ConnectTimeoutMS or SocketTimeoutMS to 0, your application will use the operating system's default socket timeout value.
+
+: MinPoolSize / MaxPoolsize (integer) : Specifies the minimun and maximum number of connections the driver should create in its connection pool. This count includes connections in use.
+
+: MaxIdleTimeMS (integer) : Specifies the amount of time, in milliseconds, a connection can be idle before it's closed. Specifying 0 means no minimum.
 
 ### More Options
 
@@ -103,15 +144,19 @@ Execute MongoDB collection operations with this node.
 : Collection | msg.collection (string) : MongoDB database collection.
 
 : Operation | msg.operation (string) : Run a collection or database operation. 
-Examples for collection operation are CRUD like `find`, `findOne`, `insertOne`, `updateOne`, `aggregate` and many more. 
-Valid database operations are `command`, `ping`, `stats` and more.
+Common collection operations are `find`, `findOne`, `insertOne`, `insertMany`, `updateOne`, `updateMany`, `deleteOne`, `deleteMany`, `aggregate` and more.
+`insert`, `update` and `delete` are deprecated and not supported by the latest mongodb driver version. Read the upgrade instructions for more information.
+
+Common database operations are `command`, `ping`, `stats` and more.
 
 : msg.payload (array) : Pass the CRUD operation arguments as message payload. Message payload has to be array type to pass multiple function arguments to driver operation.
 Example: `msg.payload = [{name: 'marina'},{fields: {...}}]`. The payload array will be passed as function arguments for the MongoDB driver collection operation, like so: `collection.find({name: 'marina'}, {fields: {...}})`
 
 : Output (string) : For `find` and `aggregate` operation. Choose `toArray` or `forEach` output type.
 
-: handle document _id (bool) : With this feature enabled, the operation node will convert a document _id of type string to a document _id of type ObjectId.
+: MaxTimeMS (integer) : MaxTimeMS Specifies the maximum amount of time the server should wait for an operation to complete after it has reached the server. If an operation runs over the specified time limit, it returns a timeout error. Prevent long-running operations from slowing down the server by specifying a timeout value. Specifying 0 means no timeout.
+
+: Handle document \_id (bool) : With this feature enabled, the operation node will convert a document \_id of type string to a document \_id of type ObjectId.
 
 The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like: `msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`
 
