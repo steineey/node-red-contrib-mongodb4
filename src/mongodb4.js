@@ -1,9 +1,9 @@
 module.exports = function (RED) {
     var { MongoClient, ObjectId } = require("mongodb");
 
-    function randStr(){
+    function randStr() {
         return Math.floor(Math.random() * Date.now()).toString(36);
-    }  
+    }
 
     function ClientNode(n) {
         RED.nodes.createNode(this, n);
@@ -26,7 +26,6 @@ module.exports = function (RED) {
         });
 
         try {
-
             // prepare mongodb connection uri
             if (n.uriTabActive === "tab-uri-advanced") {
                 if (n.uri) {
@@ -48,8 +47,8 @@ module.exports = function (RED) {
             let auth = null;
             if (node.credentials.username || node.credentials.password) {
                 auth = {
-                    username: node.credentials.username || '',
-                    password: node.credentials.password || ''
+                    username: node.credentials.username || "",
+                    password: node.credentials.password || "",
                 };
             }
 
@@ -74,14 +73,15 @@ module.exports = function (RED) {
                 tls: n.tls || undefined,
                 tlsCAFile: n.tlsCAFile || undefined,
                 tlsCertificateKeyFile: n.tlsCertificateKeyFile || undefined,
-                tlsCertificateKeyFilePassword: n.tlsCertificateKeyFilePassword || undefined,
+                tlsCertificateKeyFilePassword:
+                    n.tlsCertificateKeyFilePassword || undefined,
                 tlsInsecure: n.tlsInsecure || undefined,
                 connectTimeoutMS: parseInt(n.connectTimeoutMS || "30000", 10),
                 socketTimeoutMS: parseInt(n.socketTimeoutMS || "0", 10),
                 minPoolSize: parseInt(n.minPoolSize || "0", 10),
                 maxPoolSize: parseInt(n.maxPoolSize || "100", 10),
                 maxIdleTimeMS: parseInt(n.maxIdleTimeMS || "0", 10),
-                ...advanced // custom options will overwrite other options
+                ...advanced, // custom options will overwrite other options
             };
 
             // console.log(n, node.n.options);
@@ -89,15 +89,14 @@ module.exports = function (RED) {
             // initialize mongo client instance
             node.n.client = new MongoClient(node.n.uri, node.n.options);
             node.log(`client initialized with app name '${appName}'`);
-
         } catch (err) {
             node.error(err.message);
         }
 
         node.getDatabase = function () {
-            if(node.n.client) {
+            if (node.n.client) {
                 return node.n.client.db(n.dbName);
-            }else{
+            } else {
                 return null;
             }
         };
@@ -124,10 +123,10 @@ module.exports = function (RED) {
             counter: {
                 success: 0,
                 error: 0,
-            }
+            },
         };
 
-        node.ping = async function(database) {
+        node.ping = async function (database) {
             try {
                 var ping = await database.command({ ping: 1 });
                 if (ping && ping.ok === 1) {
@@ -139,7 +138,7 @@ module.exports = function (RED) {
                 } else {
                     throw Error("ping failed");
                 }
-            }catch(err){
+            } catch (err) {
                 node.error(err);
                 node.status({
                     fill: "red",
@@ -147,22 +146,21 @@ module.exports = function (RED) {
                     text: "ping failed",
                 });
             }
-        }
+        };
 
         // connection test
-        if(node.n.database) {
+        if (node.n.database) {
             node.ping(node.n.database);
-        }else{
+        } else {
             node.status({
                 fill: "red",
                 shape: "dot",
-                text: "config node error"
+                text: "config node error",
             });
         }
-        
-        node.on("input", async function (msg, send, done) {
 
-            if(node.n.database === null) {
+        node.on("input", async function (msg, send, done) {
+            if (node.n.database === null) {
                 done(new Error("config node error"));
                 return;
             }
@@ -196,13 +194,13 @@ module.exports = function (RED) {
                 // prepare request arguments
                 let requestArg = [];
                 if (msg.payload && !Array.isArray(msg.payload)) {
-                    requestArg = [ msg.payload ];
-                }else if(msg.payload) {
+                    requestArg = [msg.payload];
+                } else if (msg.payload) {
                     requestArg = msg.payload;
                 }
 
                 const maxTimeMS = parseInt(node.n.maxTimeMS || "0", 10);
-                if(maxTimeMS > 0) {
+                if (maxTimeMS > 0) {
                     setMaxTimeMS(operation, requestArg, maxTimeMS);
                 }
 
@@ -213,7 +211,9 @@ module.exports = function (RED) {
                         handleDocumentId(requestArg, false);
                     } catch (err) {
                         // on error set warning and continue
-                        throw Error(`document _id handling failed ${err.message}`);
+                        throw Error(
+                            `document _id handling failed ${err.message}`
+                        );
                     }
                 }
 
@@ -271,16 +271,17 @@ module.exports = function (RED) {
     function handleDocumentId(queryObj, keyWasId) {
         if (queryObj && typeof queryObj === "object") {
             for (var [key, value] of Object.entries(queryObj)) {
+                keyWasId =
+                    keyWasId ||
+                    key === "_id" ||
+                    key.substring(key.length - 4) === "._id";
                 if (
-                    (key === "_id" || keyWasId) &&
+                    keyWasId &&
                     typeof value === "string" &&
                     ObjectId.isValid(value)
                 ) {
                     queryObj[key] = new ObjectId(value);
                 } else if (typeof value === "object") {
-                    if (key === "_id") {
-                        keyWasId = true;
-                    }
                     handleDocumentId(value, keyWasId);
                 }
             }
@@ -289,34 +290,36 @@ module.exports = function (RED) {
 
     function setMaxTimeMS(operation, payload, maxTimeMS) {
         let argi = 0;
-        switch(operation) {
-            case 'stats':
+        switch (operation) {
+            case "stats":
                 argi = 0;
                 break;
-            case 'insertOne':
-            case 'insertMany':
-            case 'find':
-            case 'findOne':
-            case 'aggregate':
-            case 'findOneAndDelete':
-            case 'deleteOne':
-            case 'deleteMany':
-            case 'count':
-            case 'countDocuments':
+            case "insertOne":
+            case "insertMany":
+            case "find":
+            case "findOne":
+            case "aggregate":
+            case "findOneAndDelete":
+            case "deleteOne":
+            case "deleteMany":
+            case "count":
+            case "countDocuments":
                 argi = 1;
                 break;
-            case 'replaceOne':
-            case 'updateOne':
-            case 'updateMany':
-            case 'findOneAndUpdate':
-            case 'findOneAndReplace':
+            case "replaceOne":
+            case "updateOne":
+            case "updateMany":
+            case "findOneAndUpdate":
+            case "findOneAndReplace":
                 argi = 2;
                 break;
             default:
-                throw Error(`this node can't set maxTimeMS for operation '${operation}'. Use msg.payload instead.`);
+                throw Error(
+                    `this node can't set maxTimeMS for operation '${operation}'. Use msg.payload instead.`
+                );
         }
-        
-        if(typeof payload[argi] !== 'object') {
+
+        if (typeof payload[argi] !== "object") {
             payload[argi] = {};
         }
 
