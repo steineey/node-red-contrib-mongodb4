@@ -9,7 +9,7 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, n);
         const node = this;
 
-        node.n = {
+        node.config = {
             uri: null, // mongodb connection uri
             options: {}, // mongodb client options
             client: null, // mongodb client instance
@@ -17,9 +17,9 @@ module.exports = function (RED) {
 
         node.on("close", async function (removed, done) {
             done = done || function () {};
-            if (node.n.client) {
+            if (node.config.client) {
                 // close client and all open connections
-                await node.n.client.close();
+                await node.config.client.close();
                 node.log("client closed");
             }
             done();
@@ -27,17 +27,17 @@ module.exports = function (RED) {
 
         try {
             // prepare mongodb connection uri
-            if (n.uriTabActive === "tab-uri-advanced") {
-                if (n.uri) {
-                    node.n.uri = n.uri;
+            if (config.uriTabActive === "tab-uri-advanced") {
+                if (config.uri) {
+                    node.config.uri = config.uri;
                 } else {
                     throw new Error("Connection URI undefined.");
                 }
-            } else if (n.protocol && n.hostname) {
-                if (n.port) {
-                    node.n.uri = `${n.protocol}://${n.hostname}:${n.port}`;
+            } else if (config.protocol && config.hostname) {
+                if (config.port) {
+                    node.config.uri = `${config.protocol}://${config.hostname}:${config.port}`;
                 } else {
-                    node.n.uri = `${n.protocol}://${n.hostname}`;
+                    node.config.uri = `${config.protocol}://${config.hostname}`;
                 }
             } else {
                 throw new Error("Define a hostname for MongoDB connection.");
@@ -55,47 +55,47 @@ module.exports = function (RED) {
             // user can define more options with json input
             let advanced = {};
             try {
-                advanced = JSON.parse(n.advanced || "{}");
+                advanced = JSON.parse(config.advanced || "{}");
             } catch (err) {
                 throw new Error("Parsing advanced options JSON failed.");
             }
 
             // app name will be printed in db server log upon establishing each connection
-            const appName = n.appName || `nodered-${randStr()}`;
+            const appName = config.appName || `nodered-${randStr()}`;
 
             // connection options
-            node.n.options = {
-                ...node.n.options,
+            node.config.options = {
+                ...node.config.options,
                 appName: appName,
                 auth: auth,
-                authMechanism: n.authMechanism || undefined,
-                authSource: n.authSource || undefined,
-                tls: n.tls || undefined,
-                tlsCAFile: n.tlsCAFile || undefined,
-                tlsCertificateKeyFile: n.tlsCertificateKeyFile || undefined,
+                authMechanism: config.authMechanism || undefined,
+                authSource: config.authSource || undefined,
+                tls: config.tls || undefined,
+                tlsCAFile: config.tlsCAFile || undefined,
+                tlsCertificateKeyFile: config.tlsCertificateKeyFile || undefined,
                 tlsCertificateKeyFilePassword:
-                    n.tlsCertificateKeyFilePassword || undefined,
-                tlsInsecure: n.tlsInsecure || undefined,
-                connectTimeoutMS: parseInt(n.connectTimeoutMS || "30000", 10),
-                socketTimeoutMS: parseInt(n.socketTimeoutMS || "0", 10),
-                minPoolSize: parseInt(n.minPoolSize || "0", 10),
-                maxPoolSize: parseInt(n.maxPoolSize || "100", 10),
-                maxIdleTimeMS: parseInt(n.maxIdleTimeMS || "0", 10),
+                    config.tlsCertificateKeyFilePassword || undefined,
+                tlsInsecure: config.tlsInsecure || undefined,
+                connectTimeoutMS: parseInt(config.connectTimeoutMS || "30000", 10),
+                socketTimeoutMS: parseInt(config.socketTimeoutMS || "0", 10),
+                minPoolSize: parseInt(config.minPoolSize || "0", 10),
+                maxPoolSize: parseInt(config.maxPoolSize || "100", 10),
+                maxIdleTimeMS: parseInt(config.maxIdleTimeMS || "0", 10),
                 ...advanced, // custom options will overwrite other options
             };
 
-            // console.log(n, node.n.options);
+            // console.log(n, node.config.options);
 
             // initialize mongo client instance
-            node.n.client = new MongoClient(node.n.uri, node.n.options);
+            node.config.client = new MongoClient(node.config.uri, node.config.options);
             node.log(`client initialized with app name '${appName}'`);
         } catch (err) {
             node.error(err.message);
         }
 
         node.getDatabase = function () {
-            if (node.n.client) {
-                return node.n.client.db(n.dbName);
+            if (node.config.client) {
+                return node.config.client.db(config.dbName);
             } else {
                 return null;
             }
@@ -109,17 +109,17 @@ module.exports = function (RED) {
         },
     });
 
-    function OperationNode(n) {
-        RED.nodes.createNode(this, n);
+    function OperationNode(config) {
+        RED.nodes.createNode(this, config);
         const node = this;
-        node.n = {
-            database: RED.nodes.getNode(n.clientNode).getDatabase(),
-            mode: n.mode,
-            collection: n.collection,
-            operation: n.operation,
-            output: n.output,
-            maxTimeMS: n.maxTimeMS,
-            handleDocId: n.handleDocId,
+        node.config = {
+            database: RED.nodes.getNode(config.clientNode).getDatabase(),
+            mode: config.mode,
+            collection: config.collection,
+            operation: config.operation,
+            output: config.output,
+            maxTimeMS: config.maxTimeMS,
+            handleDocId: config.handleDocId,
             counter: {
                 success: 0,
                 error: 0,
@@ -149,8 +149,8 @@ module.exports = function (RED) {
         };
 
         // connection test
-        if (node.n.database) {
-            node.ping(node.n.database);
+        if (node.config.database) {
+            node.ping(node.config.database);
         } else {
             node.status({
                 fill: "red",
@@ -160,28 +160,28 @@ module.exports = function (RED) {
         }
 
         node.on("input", async function (msg, send, done) {
-            if (node.n.database === null) {
+            if (node.config.database === null) {
                 done(new Error("config node error"));
                 return;
             }
 
             try {
                 let dbElement;
-                if ((msg.mode || node.n.mode) === "db") {
+                if ((msg.mode || node.config.mode) === "db") {
                     // database operation mode
-                    dbElement = node.n.database;
+                    dbElement = node.config.database;
                 } else {
                     // default mode is collection operation mode
                     // get mongodb collection
-                    const cn = msg.collection || node.n.collection;
+                    const cn = msg.collection || node.config.collection;
                     if (!cn) {
                         throw Error("collection name undefined");
                     }
-                    dbElement = node.n.database.collection(cn);
+                    dbElement = node.config.database.collection(cn);
                 }
 
                 // get mongodb operation
-                const operation = msg.operation || node.n.operation;
+                const operation = msg.operation || node.config.operation;
                 if (!operation) {
                     throw Error("operation undefined");
                 }
@@ -199,13 +199,13 @@ module.exports = function (RED) {
                     requestArg = msg.payload;
                 }
 
-                const maxTimeMS = parseInt(node.n.maxTimeMS || "0", 10);
+                const maxTimeMS = parseInt(node.config.maxTimeMS || "0", 10);
                 if (maxTimeMS > 0) {
                     setMaxTimeMS(operation, requestArg, maxTimeMS);
                 }
 
                 // experimentel feature
-                if (node.n.handleDocId) {
+                if (node.config.handleDocId) {
                     try {
                         // handle mongodb document id
                         handleDocumentId(requestArg, false);
@@ -221,7 +221,7 @@ module.exports = function (RED) {
 
                 // output handling on aggregate or find operation
                 if (operation === "aggregate" || operation === "find") {
-                    switch (node.n.output) {
+                    switch (node.config.output) {
                         case "forEach":
                             await request.forEach((payload) => {
                                 send({ ...msg, payload: payload });
@@ -243,11 +243,11 @@ module.exports = function (RED) {
                 }
 
                 // display node status
-                node.n.counter.success++;
+                node.config.counter.success++;
                 node.status({
                     fill: "green",
                     shape: "dot",
-                    text: `success ${node.n.counter.success}, error ${node.n.counter.error}`,
+                    text: `success ${node.config.counter.success}, error ${node.config.counter.error}`,
                 });
 
                 if (done) {
@@ -255,7 +255,7 @@ module.exports = function (RED) {
                 }
             } catch (err) {
                 // operation error handling
-                node.n.counter.error++;
+                node.config.counter.error++;
                 node.status({
                     fill: "red",
                     shape: "dot",
