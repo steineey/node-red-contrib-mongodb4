@@ -114,7 +114,7 @@ module.exports = function (RED) {
         const node = this;
 
         node.mongoClient = RED.nodes.getNode(config.clientNode);
-        
+
         node.config = {
             mode: config.mode,
             collection: config.collection,
@@ -224,7 +224,7 @@ module.exports = function (RED) {
                 node.status({
                     fill: "red",
                     shape: "dot",
-                    text: "critical error",
+                    text: "operation failed",
                 });
                 done(err);
             }
