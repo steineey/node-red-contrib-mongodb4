@@ -5,39 +5,28 @@ module.exports = function (RED) {
         return Math.floor(Math.random() * Date.now()).toString(36);
     }
 
-    function ClientNode(n) {
-        RED.nodes.createNode(this, n);
+    function ClientNode(config) {
+        RED.nodes.createNode(this, config);
         const node = this;
 
-        node.config = {
+        node.mongoConfig = {
             uri: null, // mongodb connection uri
             options: {}, // mongodb client options
-            client: null, // mongodb client instance
         };
-
-        node.on("close", async function (removed, done) {
-            done = done || function () {};
-            if (node.config.client) {
-                // close client and all open connections
-                await node.config.client.close();
-                node.log("client closed");
-            }
-            done();
-        });
 
         try {
             // prepare mongodb connection uri
             if (config.uriTabActive === "tab-uri-advanced") {
                 if (config.uri) {
-                    node.config.uri = config.uri;
+                    node.mongoConfig.uri = config.uri;
                 } else {
                     throw new Error("Connection URI undefined.");
                 }
             } else if (config.protocol && config.hostname) {
                 if (config.port) {
-                    node.config.uri = `${config.protocol}://${config.hostname}:${config.port}`;
+                    node.mongoConfig.uri = `${config.protocol}://${config.hostname}:${config.port}`;
                 } else {
-                    node.config.uri = `${config.protocol}://${config.hostname}`;
+                    node.mongoConfig.uri = `${config.protocol}://${config.hostname}`;
                 }
             } else {
                 throw new Error("Define a hostname for MongoDB connection.");
@@ -64,19 +53,23 @@ module.exports = function (RED) {
             const appName = config.appName || `nodered-${randStr()}`;
 
             // connection options
-            node.config.options = {
-                ...node.config.options,
+            node.mongoConfig.options = {
+                ...node.mongoConfig.options,
                 appName: appName,
                 auth: auth,
                 authMechanism: config.authMechanism || undefined,
                 authSource: config.authSource || undefined,
                 tls: config.tls || undefined,
                 tlsCAFile: config.tlsCAFile || undefined,
-                tlsCertificateKeyFile: config.tlsCertificateKeyFile || undefined,
+                tlsCertificateKeyFile:
+                    config.tlsCertificateKeyFile || undefined,
                 tlsCertificateKeyFilePassword:
                     config.tlsCertificateKeyFilePassword || undefined,
                 tlsInsecure: config.tlsInsecure || undefined,
-                connectTimeoutMS: parseInt(config.connectTimeoutMS || "30000", 10),
+                connectTimeoutMS: parseInt(
+                    config.connectTimeoutMS || "30000",
+                    10
+                ),
                 socketTimeoutMS: parseInt(config.socketTimeoutMS || "0", 10),
                 minPoolSize: parseInt(config.minPoolSize || "0", 10),
                 maxPoolSize: parseInt(config.maxPoolSize || "100", 10),
@@ -84,22 +77,29 @@ module.exports = function (RED) {
                 ...advanced, // custom options will overwrite other options
             };
 
-            // console.log(n, node.config.options);
+            // console.log(n, node.mongoConfig.options);
 
             // initialize mongo client instance
-            node.config.client = new MongoClient(node.config.uri, node.config.options);
+            node.mongoClient = new MongoClient(
+                node.mongoConfig.uri,
+                node.mongoConfig.options
+            );
             node.log(`client initialized with app name '${appName}'`);
+
+            node.database = node.mongoClient.db(config.dbName);
         } catch (err) {
             node.error(err.message);
         }
 
-        node.getDatabase = function () {
-            if (node.config.client) {
-                return node.config.client.db(config.dbName);
-            } else {
-                return null;
+        node.on("close", async function (removed, done) {
+            done = done || function () {};
+            if (node.mongoClient) {
+                // close client and all open connections
+                await node.mongoClient.close();
+                node.log("client closed");
             }
-        };
+            done();
+        });
     }
 
     RED.nodes.registerType("mongodb4-client", ClientNode, {
@@ -112,14 +112,16 @@ module.exports = function (RED) {
     function OperationNode(config) {
         RED.nodes.createNode(this, config);
         const node = this;
+
+        node.mongoClient = RED.nodes.getNode(config.clientNode);
+        
         node.config = {
-            database: RED.nodes.getNode(config.clientNode).getDatabase(),
             mode: config.mode,
             collection: config.collection,
             operation: config.operation,
             output: config.output,
             maxTimeMS: config.maxTimeMS,
-            handleDocId: config.handleDocId
+            handleDocId: config.handleDocId,
         };
 
         node.counter = {
@@ -127,50 +129,12 @@ module.exports = function (RED) {
             error: 0,
         };
 
-        node.ping = async function (database) {
-            try {
-                var ping = await database.command({ ping: 1 });
-                if (ping && ping.ok === 1) {
-                    node.status({
-                        fill: "green",
-                        shape: "dot",
-                        text: "connected",
-                    });
-                } else {
-                    throw Error("ping failed");
-                }
-            } catch (err) {
-                node.error(err);
-                node.status({
-                    fill: "red",
-                    shape: "dot",
-                    text: "ping failed",
-                });
-            }
-        };
-
-        // connection test
-        if (node.config.database) {
-            node.ping(node.config.database);
-        } else {
-            node.status({
-                fill: "red",
-                shape: "dot",
-                text: "config node error",
-            });
-        }
-
         node.on("input", async function (msg, send, done) {
-            if (node.config.database === null) {
-                done(new Error("config node error"));
-                return;
-            }
-
             try {
                 let dbElement;
                 if ((msg.mode || node.config.mode) === "db") {
                     // database operation mode
-                    dbElement = node.config.database;
+                    dbElement = node.mongoClient.database;
                 } else {
                     // default mode is collection operation mode
                     // get mongodb collection
@@ -178,7 +142,7 @@ module.exports = function (RED) {
                     if (!cn) {
                         throw Error("collection name undefined");
                     }
-                    dbElement = node.config.database.collection(cn);
+                    dbElement = node.mongoClient.database.collection(cn);
                 }
 
                 // get mongodb operation
@@ -260,7 +224,7 @@ module.exports = function (RED) {
                 node.status({
                     fill: "red",
                     shape: "dot",
-                    text: "operation error",
+                    text: "critical error",
                 });
                 done(err);
             }

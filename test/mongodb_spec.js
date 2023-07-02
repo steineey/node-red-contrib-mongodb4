@@ -44,27 +44,6 @@ describe("testing mongodb4 nodes", function () {
         });
     });
 
-    it("connection test", function (done) {
-        helper.load(
-            mongodbNode,
-            testFlow,
-            { "config-node": testConfig.credentials },
-            function () {
-                var operationNode = helper.getNode("operation-node");
-                var configNode = helper.getNode("config-node");
-
-                should(operationNode).not.be.null();
-                should(configNode).not.be.null();
-                should(operationNode.n.client).not.be.null();
-
-                operationNode.on("call:status", (call) => {
-                    should(call.firstArg.text).be.equal("connected");
-                    done();
-                });
-            }
-        );
-    });
-
     it("insertOne", function (done) {
         helper.load(
             mongodbNode,
