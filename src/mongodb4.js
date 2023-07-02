@@ -119,11 +119,12 @@ module.exports = function (RED) {
             operation: config.operation,
             output: config.output,
             maxTimeMS: config.maxTimeMS,
-            handleDocId: config.handleDocId,
-            counter: {
-                success: 0,
-                error: 0,
-            },
+            handleDocId: config.handleDocId
+        };
+
+        node.counter = {
+            success: 0,
+            error: 0,
         };
 
         node.ping = async function (database) {
@@ -243,11 +244,11 @@ module.exports = function (RED) {
                 }
 
                 // display node status
-                node.config.counter.success++;
+                node.counter.success++;
                 node.status({
                     fill: "green",
                     shape: "dot",
-                    text: `success ${node.config.counter.success}, error ${node.config.counter.error}`,
+                    text: `success ${node.counter.success}, error ${node.counter.error}`,
                 });
 
                 if (done) {
@@ -255,7 +256,7 @@ module.exports = function (RED) {
                 }
             } catch (err) {
                 // operation error handling
-                node.config.counter.error++;
+                node.counter.error++;
                 node.status({
                     fill: "red",
                     shape: "dot",
