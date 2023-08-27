@@ -1,5 +1,5 @@
 module.exports = function (RED) {
-    var { MongoClient, ObjectId } = require("mongodb");
+    const { MongoClient, ObjectId } = require("mongodb");
 
     function randStr() {
         return Math.floor(Math.random() * Date.now()).toString(36);
@@ -245,21 +245,25 @@ module.exports = function (RED) {
     // handle document _id which was set as string type by user
     // mongodb driver expects ObjectId as document _id
     function handleDocumentId(queryObj, keyWasId) {
-        if (queryObj && typeof queryObj === "object") {
-            for (var [key, value] of Object.entries(queryObj)) {
-                keyWasId =
-                    keyWasId ||
-                    key === "_id" ||
-                    key.substring(key.length - 4) === "._id";
-                if (
-                    keyWasId &&
-                    typeof value === "string" &&
-                    ObjectId.isValid(value)
-                ) {
-                    queryObj[key] = new ObjectId(value);
-                } else if (typeof value === "object") {
-                    handleDocumentId(value, keyWasId);
-                }
+        if (!queryObj || typeof queryObj !== "object") {
+            return;
+        }
+
+        for (const [key, value] of Object.entries(queryObj)) {
+
+            const keyIsId =
+                keyWasId === true ||
+                key === "_id" ||
+                key.substring(key.length - 4) === "._id";
+
+            if (
+                keyIsId === true &&
+                typeof value === "string" &&
+                ObjectId.isValid(value)
+            ) {
+                queryObj[key] = new ObjectId(value);
+            } else if (typeof value === "object") {
+                handleDocumentId(value, keyIsId);
             }
         }
     }
