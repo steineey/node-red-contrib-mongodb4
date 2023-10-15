@@ -1,39 +1,39 @@
 {
-  "name": "node-red-contrib-mongodb4",
-  "version": "2.3.0",
-  "description": "A MongoDB node for Node-Red without limitations.",
-  "keywords": [
-    "node-red",
-    "nodes",
-    "mongodb"
-  ],
-  "author": "Christopher Steinbach",
-  "homepage": "https://github.com/steineey/node-red-contrib-mongodb4#readme",
-  "bugs": "https://github.com/steineey/node-red-contrib-mongodb4/issues",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/steineey/node-red-contrib-mongodb4"
-  },
-  "license": "MIT",
-  "scripts": {
-    "test": "mocha test/mongodb_spec.js"
-  },
-  "dependencies": {
-    "mongodb": "^5.8.1"
-  },
-  "node-red": {
-    "version": ">=2.0.0",
-    "nodes": {
-      "mongodb4": "src/mongodb4.js"
+    "name": "node-red-contrib-mongodb4",
+    "version": "2.4.0",
+    "description": "A MongoDB node for Node-Red without limitations.",
+    "keywords": [
+        "node-red",
+        "nodes",
+        "mongodb"
+    ],
+    "author": "Christopher Steinbach",
+    "homepage": "https://github.com/steineey/node-red-contrib-mongodb4#readme",
+    "bugs": "https://github.com/steineey/node-red-contrib-mongodb4/issues",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/steineey/node-red-contrib-mongodb4"
+    },
+    "license": "MIT",
+    "scripts": {
+        "test": "mocha test/mongodb_spec.js"
+    },
+    "dependencies": {
+        "mongodb": "^5.9.0"
+    },
+    "node-red": {
+        "version": ">=2.0.0",
+        "nodes": {
+            "mongodb4": "src/mongodb4.js"
+        }
+    },
+    "engines": {
+        "node": ">=14.20.1"
+    },
+    "devDependencies": {
+        "mocha": "^10.2.0",
+        "node-red": "^3.0.2",
+        "node-red-node-test-helper": "^0.3.0",
+        "should": "^13.2.3"
     }
-  },
-  "engines": {
-    "node": ">=14.20.1"
-  },
-  "devDependencies": {
-    "mocha": "^10.2.0",
-    "node-red": "^3.0.2",
-    "node-red-node-test-helper": "^0.3.0",
-    "should": "^13.2.3"
-  }
 }

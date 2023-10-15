@@ -1,6 +1,6 @@
 # node-red-contrib-mongodb4
 
-A MongoDB node for Node-Red without limitations.
+A MongoDB driver node for Node-Red without limitations.
 
 [![npm version](https://img.shields.io/npm/v/node-red-contrib-mongodb4.svg?style=flat-square)](https://www.npmjs.org/package/node-red-contrib-mongodb4)
 [![install size](https://img.shields.io/badge/dynamic/json?url=https://packagephobia.com/v2/api.json?p=node-red-contrib-mongodb4&query=$.install.pretty&label=install%20size&style=flat-square)](https://packagephobia.now.sh/result?p=node-red-contrib-mongodb4)
@@ -19,35 +19,34 @@ Execute a database or collection operation within your flow. This node was devel
 ![basic-flow](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/basic-flow.png)
 ![flow-node](https://raw.githubusercontent.com/steineey/node-red-contrib-mongodb4/master/examples/operation-node.png)
 
-*This node was inspired by other projects like [node-red-contrib-mongodb3](https://github.com/ozomer/node-red-contrib-mongodb2) or [node-red-node-mongodb](https://flows.nodered.org/node/node-red-node-mongodb).*
+_This node was inspired by other projects like [node-red-contrib-mongodb3](https://github.com/ozomer/node-red-contrib-mongodb2) or [node-red-node-mongodb](https://flows.nodered.org/node/node-red-node-mongodb)._
 
 ## Installation
 
 Navigate to your .node-red directory - typically `~/.node-red`.
 
-```
+```sh
 npm install --save --omit=dev node-red-contrib-mongodb4
 ```
 
 ## Compatibility
 
-This MongoDB Node is compatible with the following MongoDB Server versions:
-6.1, 6.0, 5.0, 4.4, 4.2, 4.0, 3.6
+The latest version of node-red-contrib-mongodb4@2.4.x is compatible with the following MongoDB server versions: 7.0, 6.0, 5.0, 4.4, 4.2, 4.0, 3.6
 
 Node-RED >= v2.0.0,  
 NodeJS >= v14.20.1.
 
-## Upgrade to Package Version V2.x
+## Upgrade to node-red-contrib-mongodb4@2.x.x
 
-Version 2.x of this package is now using the mongodb driver version 5.x.
+Version 2.x of this node-red node is now using the mongodb driver version 5.x.
 
 Driver versions 5.x are not compatible with Node.js v12 or earlier. If you want to use this version of the driver, you must use Node.js v14.20.1 or greater.
 
 The upgraded driver removes support for the Collection.insert(), Collection.update(), and Collection.remove() helper methods. The following list provides instructions on how to replace the functionality of the removed methods:
 
-* Migrate from Collection.insert() to insertOne() or insertMany()
-* Migrate from Collection.update() to updateOne() or updateMany()
-* Migrate from Collection.remove() to deleteOne() or deleteMany()
+-   Migrate from Collection.insert() to insertOne() or insertMany()
+-   Migrate from Collection.update() to updateOne() or updateMany()
+-   Migrate from Collection.remove() to deleteOne() or deleteMany()
 
 ## Usage Example
 
@@ -63,39 +62,40 @@ This node will create a MongoDB client, with a connection pool for operation nod
 
 ### Simple Connection URI
 
-: Protocol (string) : `mongodb` or `mongodb+srv`
+-   **Protocol** - `mongodb` or `mongodb+srv`
 
-: Hostname (string) : Hostname / IP to connect to MongoDB
+-   **Hostname** - Hostname / IP to connect to MongoDB
 
-: Port (number) : Optional port number. In most cases `27017`.
+-   **Port** - Optional port number. In most cases `27017`.
 
 ### Advanced Connection URI
 
-: URI (string) : Define your own connection string in URI format.
-[Read the docs: Connection String in URI Format](https://docs.mongodb.com/manual/reference/connection-string/)
+-   **URI** - Define your own connection string in URI format.
+    [Read the docs: Connection String in URI Format](https://docs.mongodb.com/manual/reference/connection-string/)
 
 ### Authentication (optional)
 
-: Username (string) : Username for authentication.
+-   **Username** - Username for authentication.
 
-: Password (string) : Password for authentication.
+-   **Password** - Password for authentication.
 
-: AuthMech (string) : Specify the authentication mechanism that MongoDB will use to authenticate the connection. This will only be used in combination with username and password.
+-   **AuthMech** - Specify the authentication mechanism that MongoDB will use to authenticate the connection. This will only be used in combination with username and password.
 
-: AuthSource (string) : Specify the database name associated with the user’s credentials.
+-   **AuthSource** - Specify the database name associated with the user’s credentials.
 
 ### Application
 
-: Database (string) : A MongoDB database name is required.
+-   **Database** - A MongoDB database name is required.
 
-: Application Name (string) : The name of the application that created this MongoClient instance. MongoDB 3.4 and newer will print this value in the server log upon establishing each connection. It is also recorded in the slow query log and profile collections.
+-   **Application Name** - The name of the application that created this MongoClient instance. MongoDB 3.4 and newer will print this value in the server log upon establishing each connection. It is also recorded in the slow query log and profile collections.
 
-If this field is unspecified, the client node will create a app name for you. 
+If this field is unspecified, the client node will create a app name for you.
 That looks like this: `nodered-azmr5z97`. The prefix `nodered` is static. `azmr5z97` is a random connection pool id, created on runtime start-up, config-node update and full deployment.
 
 The current app name of a config node is logged to the node-red runtime log.
 
 Check the current db connections with this query:
+
 ```js
 db.currentOp(true).inprog.reduce((accumulator, connection) => {
     const appName = connection.appName || "unknown";
@@ -107,34 +107,34 @@ db.currentOp(true).inprog.reduce((accumulator, connection) => {
 
 ### TLS (optional)
 
-: TLS CA File (path) : Specifies the location of a local .pem file that contains the root certificate chain from the Certificate Authority. This file is used to validate the certificate presented by the mongod/mongos instance.
+-   **TLS CA File (path)** - Specifies the location of a local .pem file that contains the root certificate chain from the Certificate Authority. This file is used to validate the certificate presented by the mongod/mongos instance.
 
-: TLS Certificate Key File (path) : Specifies the location of a local .pem file that contains either the client's TLS/SSL certificate and key or only the client's TLS/SSL key when tlsCertificateFile is used to provide the certificate.
+-   **TLS Certificate Key File (path)** - Specifies the location of a local .pem file that contains either the client's TLS/SSL certificate and key or only the client's TLS/SSL key when tlsCertificateFile is used to provide the certificate.
 
-: TLS Certificate Key Filepassword (string) : Specifies the password to de-crypt the TLS certificate.
+-   **TLS Certificate Key Filepassword (string)** - Specifies the password to de-crypt the TLS certificate.
 
-: TLS-Insecure (bool) : Disables various certificate validations. THIS IS REALLY NOT SECURE.
+-   **TLS-Insecure** - Disables various certificate validations. THIS IS REALLY NOT SECURE.
 
 ### Connect Options
 
-: ConnectTimeoutMS (integer) : Specifies the amount of time, in milliseconds, to wait to establish a single TCP socket connection to the server before raising an error.
+-   **ConnectTimeoutMS** - Specifies the amount of time, in milliseconds, to wait to establish a single TCP socket connection to the server before raising an error.
 
-: SocketTimeoutMS (integer) : To make sure that the driver correctly closes the socket in these cases, set the SocketTimeoutMS option. When a MongoDB process times out, the driver will close the socket. We recommend that you select a value for socketTimeoutMS that is two to three times as long as the expected duration of the slowest operation that your application executes.
+-   **SocketTimeoutMS** - To make sure that the driver correctly closes the socket in these cases, set the SocketTimeoutMS option. When a MongoDB process times out, the driver will close the socket. We recommend that you select a value for socketTimeoutMS that is two to three times as long as the expected duration of the slowest operation that your application executes.
 
 If you set the value of ConnectTimeoutMS or SocketTimeoutMS to 0, your application will use the operating system's default socket timeout value.
 
-: MinPoolSize / MaxPoolsize (integer) : Specifies the minimun and maximum number of connections the driver should create in its connection pool. This count includes connections in use.
+-   **MinPoolSize / MaxPoolsize** - Specifies the minimun and maximum number of connections the driver should create in its connection pool. This count includes connections in use.
 
-: MaxIdleTimeMS (integer) : Specifies the amount of time, in milliseconds, a connection can be idle before it's closed. Specifying 0 means no minimum.
+-   **MaxIdleTimeMS** - Specifies the amount of time, in milliseconds, a connection can be idle before it's closed. Specifying 0 means no minimum.
 
 ### More Options
 
-: Options (JSON) : MongoDB Driver 4 MongoClient supports more options. Feel free to overwrite all client options with your own.
-[Read the docs: MongoClientOptions](https://mongodb.github.io/node-mongodb-native/5.2/interfaces/MongoClientOptions.html)
+-   **Options (JSON)** - MongoDB Driver 4 MongoClient supports more options. Feel free to overwrite all client options with your own.
+    [Read the docs: MongoClientOptions](https://mongodb.github.io/node-mongodb-native/5.2/interfaces/MongoClientOptions.html)
 
 ### Connection Pools
-Each configuration node has his own connection pool with a default max poolsize of 100 connection at a given time. More parallel connections / operations will be queued and processed synchronous. In this scenario slow operations will delay fast operations. You can create more separat connection pools with more configuration nodes. [More Information](https://docs.mongodb.com/drivers/node/current/faq/#how-can-i-prevent-a-slow-operation-from-delaying-other-operations-)
 
+Each configuration node has his own connection pool with a default max poolsize of 100 connection at a given time. More parallel connections / operations will be queued and processed synchronous. In this scenario slow operations will delay fast operations. You can create more separat connection pools with more configuration nodes. [More Information](https://docs.mongodb.com/drivers/node/current/faq/#how-can-i-prevent-a-slow-operation-from-delaying-other-operations-)
 
 ## The Flow Node
 
@@ -142,13 +142,13 @@ Execute MongoDB collection operations with this node.
 
 ### Inputs / Options
 
-: Connection (mongodb-client) : Select a MongoDB database server connection.
+-   **Connection (mongodb-client)** - Select a MongoDB database server connection.
 
-: Mode | msg.mode (string) : Decide if you want to run a collection or db operation {'collection', 'db'}
+-   **Mode | msg.mode (string)** - Decide if you want to run a collection or db operation {'collection', 'db'}
 
-: Collection | msg.collection (string) : MongoDB database collection.
+-   **Collection | msg.collection (string)** - MongoDB database collection.
 
-: Operation | msg.operation (string) : Run a collection or database operation. 
+-   **Operation | msg.operation (string)** - Run a collection or database operation.
 
 Common collection operations are `find`, `findOne`, `insertOne`, `insertMany`, `updateOne`, `updateMany`, `deleteOne`, `deleteMany`, `aggregate` and more.
 
@@ -156,14 +156,16 @@ Common collection operations are `find`, `findOne`, `insertOne`, `insertMany`, `
 
 Common database operations are `command`, `ping`, `stats` and more.
 
-: msg.payload (array) : Pass the CRUD operation arguments as message payload. Message payload has to be array type to pass multiple function arguments to a driver operation.
+-   **msg.payload (array)** - Pass the CRUD operation arguments as message payload. Message payload has to be array type to pass multiple function arguments to a driver operation.
 
 Example `insertOne`:
+
 ```js
 msg.payload = [{name: 'Anna', age: 1}];
 ```
 
 Example `find`:
+
 ```js
 // find query argument
 const query = {
@@ -171,7 +173,7 @@ const query = {
 };
 // find option argument
 const options = {
-  sort: {name: 1}, 
+  sort: {name: 1},
   projection: {name: 1},
   limit: 10,
   skip: 2
@@ -185,6 +187,7 @@ The payload array will be passed as function arguments for the MongoDB driver co
 : `collection.find({age: 22}, {sort: {...}})`
 
 Another example for an aggregation call:
+
 ```js
 // aggregation pipeline
 const pipeline = [{
@@ -207,11 +210,11 @@ return msg;
 
 In a simple aggregation call you have an array inside array like `msg.payload = [pipeline]`. This might be confusing, but I haven't found a better solution for that.
 
-: Output (string) : For `find` and `aggregate` operation. Choose `toArray` or `forEach` output type.
+-   **Output** - For `find` and `aggregate` operation. Choose `toArray` or `forEach` output type.
 
-: MaxTimeMS (integer) : MaxTimeMS Specifies the maximum amount of time the server should wait for an operation to complete after it has reached the server. If an operation runs over the specified time limit, it returns a timeout error. Prevent long-running operations from slowing down the server by specifying a timeout value. Specifying 0 means no timeout.
+-   **MaxTimeMS** - MaxTimeMS Specifies the maximum amount of time the server should wait for an operation to complete after it has reached the server. If an operation runs over the specified time limit, it returns a timeout error. Prevent long-running operations from slowing down the server by specifying a timeout value. Specifying 0 means no timeout.
 
-: Handle document \_id (bool) : With this feature enabled, the operation node will convert a document \_id of type string to a document \_id of type ObjectId.
+-   **Handle document \_id** - With this feature enabled, the operation node will convert a document \_id of type string to a document \_id of type ObjectId.
 
 The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like: `msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`
 
@@ -223,14 +226,13 @@ So this will work:
 
 ### More information about collection operations
 
-More information here:
-[Collection-API v5.2](https://mongodb.github.io/node-mongodb-native/5.2/classes/Collection.html)
+[Collection-API v5.9](https://mongodb.github.io/node-mongodb-native/5.9/classes/Collection.html)
 
 ### Payload Output
 
 The node will output the database driver response as message payload.
 The operations `aggregate` and `find` can output with `toArray` or `forEach`.
 
-### More information
+### More general driver information
 
-[Visit the MongoDB Driver Docs](https://docs.mongodb.com/drivers/node/current/)
+[Visit the MongoDB Driver Docs](https://www.mongodb.com/docs/drivers/node/v5.8/)
