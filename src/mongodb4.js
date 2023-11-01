@@ -142,22 +142,22 @@ module.exports = function (RED) {
         node.on("input", async function (msg, send, done) {
             try {
                 const database = await node.mongoClient.db();
+
                 let dbElement;
-                if ((msg.mode || node.config.mode) === "db") {
-                    // database operation mode
-                    dbElement = database;
-                } else {
-                    // default mode is collection operation mode
-                    // get mongodb collection
-                    const cn = msg.collection || node.config.collection;
-                    if (!cn) {
-                        throw Error("collection name undefined");
-                    }
-                    dbElement = database.collection(cn);
+                switch(node.config.mode) {
+                    case "db":
+                        // database operation mode
+                        dbElement = database;
+                    default:
+                        // default mode is collection operation mode
+                        // get mongodb collection
+                        const cn = node.config.collection || msg.collection;
+                        if (!cn) throw Error("collection name undefined");
+                        dbElement = database.collection(cn);
                 }
 
                 // get mongodb operation
-                const operation = msg.operation || node.config.operation;
+                const operation = node.config.operation || msg.operation;
                 if (!operation) {
                     throw Error("operation undefined");
                 }
