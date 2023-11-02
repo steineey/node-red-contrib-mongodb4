@@ -313,4 +313,34 @@ describe("testing mongodb4 nodes", function () {
             }
         );
     });
+
+    it("database operation - stats", function (done) {
+        helper.load(
+            mongodbNode,
+            [
+                ...testFlow,
+                {
+                    ...operationNode,
+                    mode: "db",
+                    operation: "stats"
+                },
+            ],
+            { "config-node": MONGODB_CREDENTIALS },
+            function () {
+                const operationNode = helper.getNode("operation-node");
+                const helperNode = helper.getNode("helper-node");
+
+                helperNode.on("input", function (msg) {
+                    try {
+                        msg.should.have.property("payload").with.property("db", process.env.MONGODB_DBNAME);
+                        done();
+                    } catch (err) {
+                        done(err);
+                    }
+                });
+
+                operationNode.receive({});
+            }
+        );
+    });
 });
