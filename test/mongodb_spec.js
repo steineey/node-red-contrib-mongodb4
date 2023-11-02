@@ -1,39 +1,45 @@
-var should = require("should");
-var helper = require("node-red-node-test-helper");
-var mongodbNode = require("../src/mongodb4.js");
-var testConfig = require("./config.json");
+const should = require("should");
+const helper = require("node-red-node-test-helper");
+const mongodbNode = require("../src/mongodb4.js");
 const { ObjectId } = require("mongodb");
 
 helper.init(require.resolve("node-red"));
 
-function getHelperNode() {
-    return { id: "helper-node", type: "helper" };
-}
-
-function getConfigNode() {
-    return {
-        id: "config-node",
-        type: "mongodb4-client",
-        ...testConfig.configNode,
+describe("testing mongodb4 nodes", function () {
+    const MONGODB_COLLECTION = process.env.MONGODB_COLLECTION || "";
+    const MONGODB_CREDENTIALS = {
+        username: process.env.MONGODB_USERNAME || "",
+        password: process.env.MONGODB_PASSWORD || "",
     };
-}
 
-function getOperationNode() {
-    return {
+    const testFlow = [
+        {
+            id: "config-node",
+            type: "mongodb4-client",
+            protocol: process.env.MONGODB_PROTOCOL || "mongodb",
+            hostname: process.env.MONGODB_HOSTNAME || "",
+            port: process.env.MONGODB_PORT || "",
+            dbName: process.env.MONGODB_DBNAME || "",
+            authSource: process.env.MONGODB_AUTHSRC || "",
+            authMechanism: process.env.MONGODB_AUTHMECH || "SCRAM-SHA-1",
+            tls: Boolean(process.env.MONGODB_TLS),
+        },
+        { id: "helper-node", type: "helper" },
+    ];
+
+    const operationNode = {
         id: "operation-node",
         type: "mongodb4",
         clientNode: "config-node",
-        collection: testConfig.collection,
-        handleDocId: true,
+        mode: "collection",
+        collection: MONGODB_COLLECTION,
+        operation: "insertOne",
+        handleDocId: false,
         maxTimeMS: "0",
         output: "toArray",
         wires: [["helper-node"]],
     };
-}
 
-var testFlow = [getHelperNode(), getConfigNode(), getOperationNode()];
-
-describe("testing mongodb4 nodes", function () {
     beforeEach(function (done) {
         helper.startServer(done);
     });
@@ -47,26 +53,31 @@ describe("testing mongodb4 nodes", function () {
     it("insertOne", function (done) {
         helper.load(
             mongodbNode,
-            testFlow,
-            { "config-node": testConfig.credentials },
+            [
+                ...testFlow,
+                {
+                    ...operationNode,
+                },
+            ],
+            { "config-node": MONGODB_CREDENTIALS },
             function () {
-                var helperNode = helper.getNode("helper-node");
-                var operationNode = helper.getNode("operation-node");
+                const helperNode = helper.getNode("helper-node");
 
                 helperNode.on("input", function (msg) {
                     try {
-                        msg.should.have.property("payload");
-                        msg.payload.should.have.property("acknowledged", true);
+                        msg.should.have
+                            .property("payload")
+                            .with.property("acknowledged", true);
                         done();
                     } catch (err) {
                         done(err);
                     }
                 });
 
+                const operationNode = helper.getNode("operation-node");
+
                 operationNode.receive({
-                    payload: [{ foo: 'bar' }],
-                    collection: testConfig.collection,
-                    operation: "insertOne",
+                    payload: [{ foo: "bar" }],
                 });
 
                 operationNode.on("call:error", (call) => {
@@ -76,19 +87,67 @@ describe("testing mongodb4 nodes", function () {
         );
     });
 
-    it("document _id", function (done) {
+    it("overwrite node config", function (done) {
         helper.load(
             mongodbNode,
-            testFlow,
-            { "config-node": testConfig.credentials },
+            [
+                ...testFlow,
+                {
+                    ...operationNode,
+                    collection: "",
+                    operation: ""
+                },
+            ],
+            { "config-node": MONGODB_CREDENTIALS },
             function () {
-                var helperNode = helper.getNode("helper-node");
-                var operationNode = helper.getNode("operation-node");
+                const helperNode = helper.getNode("helper-node");
+
+                helperNode.on("input", function (msg) {
+                    try {
+                        msg.should.have
+                            .property("payload")
+                            .with.property("acknowledged", true);
+                        done();
+                    } catch (err) {
+                        done(err);
+                    }
+                });
+
+                const operationNode = helper.getNode("operation-node");
+
+                operationNode.receive({
+                    collection: MONGODB_COLLECTION,
+                    operation: "insertOne",
+                    payload: [{ foo: "bar" }]
+                });
+
+                operationNode.on("call:error", (call) => {
+                    done(new Error(call.firstArg));
+                });
+            }
+        );
+    });
+
+    it("implicit document _id (experimental)", function (done) {
+        helper.load(
+            mongodbNode,
+            [
+                ...testFlow,
+                {
+                    ...operationNode,
+                    handleDocId: true
+                },
+            ],
+            { "config-node": MONGODB_CREDENTIALS },
+            function () {
+                const helperNode = helper.getNode("helper-node");
 
                 helperNode.on("input", function (msg) {
                     try {
                         msg.should.have.property("payload");
-                        msg.payload.should.have.property("insertedId").and.be.an.instanceOf(ObjectId)
+                        msg.payload.should.have
+                            .property("insertedId")
+                            .and.be.an.instanceOf(ObjectId);
                         msg.payload.should.have.property("acknowledged", true);
                         done();
                     } catch (err) {
@@ -96,10 +155,10 @@ describe("testing mongodb4 nodes", function () {
                     }
                 });
 
+                const operationNode = helper.getNode("operation-node");
+                
                 operationNode.receive({
-                    payload: [{ _id: new ObjectId().toString() }],
-                    collection: testConfig.collection,
-                    operation: "insertOne",
+                    payload: [{ _id: new ObjectId().toString() }]
                 });
 
                 operationNode.on("call:error", (call) => {
@@ -112,11 +171,16 @@ describe("testing mongodb4 nodes", function () {
     it("find to array test", function (done) {
         helper.load(
             mongodbNode,
-            testFlow,
-            { "config-node": testConfig.credentials },
+            [
+                ...testFlow,
+                {
+                    ...operationNode,
+                    operation: "find"
+                },
+            ],
+            { "config-node": MONGODB_CREDENTIALS },
             function () {
-                var helperNode = helper.getNode("helper-node");
-                var operationNode = helper.getNode("operation-node");
+                const helperNode = helper.getNode("helper-node");
 
                 helperNode.on("input", function (msg) {
                     try {
@@ -128,9 +192,9 @@ describe("testing mongodb4 nodes", function () {
                     }
                 });
 
+                const operationNode = helper.getNode("operation-node");
+
                 operationNode.receive({
-                    collection: testConfig.collection,
-                    operation: "find",
                     payload: [{}],
                 });
 
@@ -145,14 +209,17 @@ describe("testing mongodb4 nodes", function () {
         helper.load(
             mongodbNode,
             [
-                getHelperNode(),
-                getConfigNode(),
-                { ...getOperationNode(), output: "forEach" },
+                ...testFlow,
+                {
+                    ...operationNode,
+                    operation: "", // collection is empty so we can overwrite the operation with msg.operation
+                    output: "forEach"
+                },
             ],
-            { "config-node": testConfig.credentials },
+            { "config-node": MONGODB_CREDENTIALS },
             function () {
-                var helperNode = helper.getNode("helper-node");
-                var operationNode = helper.getNode("operation-node");
+                const operationNode = helper.getNode("operation-node");
+                const helperNode = helper.getNode("helper-node");
 
                 let msgCount = 0;
 
@@ -192,15 +259,19 @@ describe("testing mongodb4 nodes", function () {
     it("mongodb error", function (done) {
         helper.load(
             mongodbNode,
-            testFlow,
-            { "config-node": testConfig.credentials },
+            [
+                ...testFlow,
+                {
+                    ...operationNode,
+                    operation: "findOne"
+                },
+            ],
+            { "config-node": MONGODB_CREDENTIALS },
             function () {
-                var operationNode = helper.getNode("operation-node");
+                const operationNode = helper.getNode("operation-node");
 
                 operationNode.receive({
-                    payload: [{ $fail: 'foo bar' }],
-                    collection: testConfig.collection,
-                    operation: "findOne",
+                    payload: [{ $fail: "foo bar" }]
                 });
 
                 operationNode.on("call:error", (call) => {
@@ -213,15 +284,19 @@ describe("testing mongodb4 nodes", function () {
     it("collection operation not supported", function (done) {
         helper.load(
             mongodbNode,
-            testFlow,
-            { "config-node": testConfig.credentials },
+            [
+                ...testFlow,
+                {
+                    ...operationNode,
+                    operation: "willFail"
+                },
+            ],
+            { "config-node": MONGODB_CREDENTIALS },
             function () {
-                var operationNode = helper.getNode("operation-node");
+                const operationNode = helper.getNode("operation-node");
 
                 operationNode.receive({
-                    payload: [{ foo: 'bar' }],
-                    collection: testConfig.collection,
-                    operation: "willFail",
+                    payload: [{ foo: "bar" }]
                 });
 
                 operationNode.on("call:error", (call) => {
@@ -231,7 +306,7 @@ describe("testing mongodb4 nodes", function () {
                             "unknown operation: 'willFail'"
                         );
                         done();
-                    }catch(err){
+                    } catch (err) {
                         done(err);
                     }
                 });
