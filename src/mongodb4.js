@@ -130,7 +130,7 @@ module.exports = function (RED) {
             collection: config.collection,
             operation: config.operation,
             output: config.output,
-            maxTimeMS: config.maxTimeMS,
+            maxTimeMS: parseInt(config.maxTimeMS || "0", 10),
             handleDocId: config.handleDocId,
         };
 
@@ -175,9 +175,8 @@ module.exports = function (RED) {
                     requestArg = msg.payload;
                 }
 
-                const maxTimeMS = parseInt(node.config.maxTimeMS || "0", 10);
-                if (maxTimeMS > 0) {
-                    setMaxTimeMS(operation, requestArg, maxTimeMS);
+                if (node.config.maxTimeMS > 0) {
+                    setMaxTimeMS(operation, requestArg, node.config.maxTimeMS);
                 }
 
                 // experimentel feature
