@@ -214,9 +214,9 @@ In a simple aggregation call you have an array inside array like `msg.payload = 
 
 -   **MaxTimeMS** - MaxTimeMS Specifies the maximum amount of time the server should wait for an operation to complete after it has reached the server. If an operation runs over the specified time limit, it returns a timeout error. Prevent long-running operations from slowing down the server by specifying a timeout value. Specifying 0 means no timeout.
 
--   **Handle document \_id** - With this feature enabled, the operation node will convert a document \_id of type string to a document \_id of type ObjectId.
+-   **Handle document \_id (deprecated)** - With this feature enabled, the operation node will search for \_id fields of type string to convert them into document \_id of type ObjectId. Be aware that not every _id field has to be a ObjectId field. Use this feature only if necessary. A better solution is to use  explicit BSON types in your query (Read: How to use BSON Types).
 
-The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like: `msg.payload = [{_id: ObjectId("624b527d08e23628e99eb963")}]`
+The default MongoDB document identifier has to be of type ObjectId. This means the native driver expects query arguments like: `msg.payload = [{_id: new ObjectId("624b527d08e23628e99eb963")}]`
 
 This mongodb node can handle this for you. If the string is a valid ObjectId, it will be translated into a real ObjectId before executed by the native driver.
 So this will work:
@@ -232,6 +232,32 @@ So this will work:
 
 The node will output the database driver response as message payload.
 The operations `aggregate` and `find` can output with `toArray` or `forEach`.
+
+### How to use BSON data types with this Node
+
+You can use BSON types with this node.
+
+First enable "mongodb" in your function global context. Add this to your `settings.js` file - typically is this file located in `~/.node-red`:
+```js
+functionGlobalContext: {
+    mongodb: require("node-red-contrib-mongodb4/node_modules/mongodb")
+},
+```
+This kind of require statement ensures that we use the BSON types from the mongodb driver used in this node. Otherwise we could run into compatibilty issues.
+
+You can now use BSON types in your function node like so:
+```js
+// get BSON types
+const {ObjectId, Double, Timestamp} = global.get("mongodb");
+// write your query
+msg.payload = [{
+    _id: new ObjectId() , 
+    value: new Double(1.4), 
+    ts: new Timestamp()
+}];
+// send them to the mongodb node
+return msg;
+```
 
 ### More general driver information
 
