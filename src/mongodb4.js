@@ -148,6 +148,9 @@ module.exports = function (RED) {
                     case "db":
                         // database operation mode
                         dbElement = database;
+                        break;
+
+                    case "collection":
                     default:
                         // default mode is collection operation mode
                         // get mongodb collection
