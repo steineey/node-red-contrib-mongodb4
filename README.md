@@ -237,7 +237,7 @@ The operations `aggregate` and `find` can output with `toArray` or `forEach`.
 
 You can use BSON types with this node.
 
-First enable "mongodb" in your function global context. Add this to your `settings.js` file - typically is this file located in `~/.node-red`:
+First enable "mongodb" in your function global context. Add this to your `settings.js` file - typically this file located in `~/.node-red`:
 ```js
 functionGlobalContext: {
     mongodb: require("node-red-contrib-mongodb4/node_modules/mongodb")
