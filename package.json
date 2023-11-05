@@ -16,7 +16,7 @@
     },
     "license": "MIT",
     "scripts": {
-        "test": "mocha test/mongodb_spec.js",
+        "test": "mocha test/mongodb_spec.js --timeout=5000",
         "test-env-localhost": "DOTENV_CONFIG_PATH=test/mongodb-localhost.env mocha test/mongodb_spec.js -r dotenv/config",
         "test-env-atlas": "DOTENV_CONFIG_PATH=test/mongodb-atlas.env mocha test/mongodb_spec.js -r dotenv/config --timeout=5000"
     },
