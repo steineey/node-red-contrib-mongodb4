@@ -1,7 +1,7 @@
 const should = require("should");
 const helper = require("node-red-node-test-helper");
-const mongodbNode = require("../src/mongodb4.js");
 const { ObjectId } = require("mongodb");
+const mongodbNode = require("../src/mongodb4.js");
 
 helper.init(require.resolve("node-red"));
 
@@ -11,7 +11,6 @@ describe("testing mongodb4 nodes", function () {
         username: process.env.MONGODB_USERNAME || "",
         password: process.env.MONGODB_PASSWORD || "",
     };
-
     const testFlow = [
         {
             id: "config-node",
@@ -23,10 +22,10 @@ describe("testing mongodb4 nodes", function () {
             authSource: process.env.MONGODB_AUTHSRC || "",
             authMechanism: process.env.MONGODB_AUTHMECH || "SCRAM-SHA-1",
             tls: Boolean(process.env.MONGODB_TLS),
+            uriTabActive: "tab-uri-simple"
         },
         { id: "helper-node", type: "helper" },
     ];
-
     const operationNode = {
         id: "operation-node",
         type: "mongodb4",
@@ -41,7 +40,11 @@ describe("testing mongodb4 nodes", function () {
     };
 
     beforeEach(function (done) {
-        helper.startServer(done);
+        try {
+            helper.startServer(done);
+        }catch(err){
+            done(err);
+        }
     });
 
     afterEach(function (done) {

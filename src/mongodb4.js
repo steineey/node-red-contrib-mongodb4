@@ -1,6 +1,5 @@
 module.exports = function (RED) {
     const { MongoClient, ObjectId } = require("mongodb");
-
     function randStr() {
         return Math.floor(Math.random() * Date.now()).toString(36);
     }
@@ -9,29 +8,33 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, config);
         const node = this;
 
-        node.mongoConfig = {
-            uri: null, // mongodb connection uri
-            options: {}, // mongodb client options
-        };
-
         // prepare mongodb connection uri
-        if (config.uriTabActive === "tab-uri-advanced") {
-            if (config.uri) {
-                node.mongoConfig.uri = config.uri;
-            } else {
-                throw new Error("Connection URI undefined.");
-            }
-        } else if (config.protocol && config.hostname) {
-            if (config.port) {
-                node.mongoConfig.uri = `${config.protocol}://${config.hostname}:${config.port}`;
-            } else {
-                node.mongoConfig.uri = `${config.protocol}://${config.hostname}`;
-            }
-        } else {
-            throw new Error("Define a hostname for MongoDB connection.");
+        let mongoUri = "";
+        switch (config.uriTabActive) {
+            case "tab-uri-simple":
+                if (config.protocol && config.hostname) {
+                    mongoUri = `${config.protocol}://${config.hostname}`;
+                } else {
+                    throw new Error("MongoDB protocol or hostname undefined.");
+                }
+                if (config.port) {
+                    mongoUri += `:${config.port}`;
+                }
+                break;
+
+            case "tab-uri-advanced":
+                if (config.uri) {
+                    mongoUri = config.uri;
+                } else {
+                    throw new Error("MongoDB URI undefined.");
+                }
+                break;
+
+            default:
+                throw new Error("MongoDB uri config failed.");
         }
 
-        // mongo client authentication
+        // prepare mongodb client authentication
         let auth = null;
         if (node.credentials.username || node.credentials.password) {
             auth = {
@@ -40,7 +43,7 @@ module.exports = function (RED) {
             };
         }
 
-        // user can define more options with json input
+        // user can pass more options as json
         let advanced = {};
         try {
             advanced = JSON.parse(config.advanced || "{}");
@@ -51,9 +54,8 @@ module.exports = function (RED) {
         // app name will be printed in db server log upon establishing each connection
         const appName = config.appName || `nodered-${randStr()}`;
 
-        // connection options
-        node.mongoConfig.options = {
-            ...node.mongoConfig.options,
+        // init mongo client instance
+        node.mongoClient = new MongoClient(mongoUri, {
             appName: appName,
             auth: auth,
             authMechanism: config.authMechanism || undefined,
@@ -70,15 +72,9 @@ module.exports = function (RED) {
             maxPoolSize: parseInt(config.maxPoolSize || "100", 10),
             maxIdleTimeMS: parseInt(config.maxIdleTimeMS || "0", 10),
             ...advanced, // custom options will overwrite other options
-        };
+        });
 
-        // init mongo client instance
-        node.mongoClient = new MongoClient(
-            node.mongoConfig.uri,
-            node.mongoConfig.options
-        );
-
-        // initial database connect
+        // internal database pointer
         node._db = node.mongoClient.db(config.dbName);
 
         // listening for unexpected topology close
@@ -87,9 +83,9 @@ module.exports = function (RED) {
             node._topologyIsClosed = true;
         });
 
-        // get database for operation node
+        // database handling
         node.db = async () => {
-            if(node._topologyIsClosed) {
+            if (node._topologyIsClosed) {
                 // try reconnect in event of topology is closed
                 await node.mongoClient.connect();
                 node._db = node.mongoClient.db(config.dbName);
@@ -141,10 +137,14 @@ module.exports = function (RED) {
 
         node.on("input", async function (msg, send, done) {
             try {
+                // get mongodb database
+                if (!node.mongoClient || !node.mongoClient.db) {
+                    throw Error("MongoDB config error.");
+                }
                 const database = await node.mongoClient.db();
 
                 let dbElement;
-                switch(node.config.mode) {
+                switch (node.config.mode) {
                     case "db":
                         // database operation mode
                         dbElement = database;
@@ -252,7 +252,6 @@ module.exports = function (RED) {
         }
 
         for (const [key, value] of Object.entries(queryObj)) {
-
             const keyIsId =
                 keyWasId === true ||
                 key === "_id" ||
