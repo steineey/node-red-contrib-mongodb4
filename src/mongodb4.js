@@ -1,5 +1,6 @@
 module.exports = function (RED) {
     const { MongoClient, ObjectId } = require("mongodb");
+
     function randStr() {
         return Math.floor(Math.random() * Date.now()).toString(36);
     }
@@ -95,7 +96,7 @@ module.exports = function (RED) {
         };
 
         // on flow redeployment or node-red instance shutdown
-        node.on("close", async function (removed, done) {
+        node.on("close", async (removed, done) => {
             done = done || function () {};
             if (node.mongoClient) {
                 // close mongodb client and all open connections
@@ -135,8 +136,20 @@ module.exports = function (RED) {
             error: 0,
         };
 
-        node.on("input", async function (msg, send, done) {
+        node.changeStream = null;
+
+        node.closeChangeStream = async () => {
+            if (node.changeStream) {
+                await node.changeStream.close();
+            }
+        };
+
+        node.on("input", async (msg, send, done) => {
+            done = done || function () {};
             try {
+                // close existing changeStreams if necessary
+                await node.closeChangeStream();
+
                 // get mongodb database
                 if (!node.mongoClient || !node.mongoClient.db) {
                     throw Error("MongoDB config error.");
@@ -212,9 +225,14 @@ module.exports = function (RED) {
                             send(msg);
                     }
                 } else if (operation === "watch") {
-                    request.on("change", (payload) => {
-                        node.send({ ...msg, payload: payload });
+                    node.changeStream = request;
+                    node.changeStream.on("change", (payload) => {
+                        node.send({ payload: payload });
                     });
+                    node.changeStream.on("error", (err) => {
+                        node.error(err);
+                    });
+                    done();
                 } else {
                     msg.payload = await request;
                     send(msg);
@@ -228,9 +246,7 @@ module.exports = function (RED) {
                     text: `success ${node.counter.success}, error ${node.counter.error}`,
                 });
 
-                if (done) {
-                    done();
-                }
+                done();
             } catch (err) {
                 // operation error handling
                 node.counter.error++;
@@ -241,6 +257,12 @@ module.exports = function (RED) {
                 });
                 done(err);
             }
+        });
+
+        node.on("close", async (removed, done) => {
+            done = done || function () {};
+            await node.closeChangeStream();
+            done();
         });
     }
 
