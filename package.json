@@ -35,8 +35,8 @@
     "devDependencies": {
         "dotenv": "^16.3.1",
         "mocha": "^10.2.0",
-        "node-red": "^3.1.0",
-        "node-red-node-test-helper": "^0.3.2",
+        "node-red": "^3.1.11",
+        "node-red-node-test-helper": "^0.3.4",
         "should": "^13.2.3"
     }
 }
