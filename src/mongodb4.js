@@ -156,50 +156,47 @@ module.exports = function (RED) {
                 }
                 const database = await node.mongoClient.db();
 
-                let dbElement;
-                switch (node.config.mode) {
-                    case "db":
-                        // database operation mode
-                        dbElement = database;
-                        break;
-
-                    case "collection":
-                    default:
-                        // default mode is collection operation mode
-                        // get mongodb collection
-                        const cn = node.config.collection || msg.collection;
-                        if (!cn) throw Error("collection name undefined");
-                        dbElement = database.collection(cn);
+                let operTarget;
+                if(node.config.mode === "db") {
+                    // database operation mode
+                    operTarget = database;
+                } else {
+                    // default mode is collection operation mode
+                    const cn = node.config.collection || msg.collection;
+                    if (!cn) throw Error("collection name undefined");
+                    operTarget = database.collection(cn);
                 }
 
                 // get mongodb operation
                 const operation = node.config.operation || msg.operation;
-                if (!operation) {
-                    throw Error("operation undefined");
-                }
+                if (!operation) throw Error("operation undefined");
 
                 // check if mongodb collection has operation
-                if (typeof dbElement[operation] !== "function") {
+                if (typeof operTarget[operation] !== "function") {
                     throw Error(`unknown operation: '${operation}'`);
                 }
 
-                // prepare request arguments
-                let requestArg = [];
-                if (msg.payload && !Array.isArray(msg.payload)) {
-                    requestArg = [msg.payload];
-                } else if (msg.payload) {
-                    requestArg = msg.payload;
+                // prepare operation arguments
+                let operArgs = [];
+                if (msg.payload) {
+                    // operation args, have to be array type
+                    if(Array.isArray(msg.payload)){
+                        operArgs = msg.payload;
+                    }else{
+                        operArgs = [msg.payload];
+                    }   
                 }
 
+                // add max time
                 if (node.config.maxTimeMS > 0) {
-                    setMaxTimeMS(operation, requestArg, node.config.maxTimeMS);
+                    setMaxTimeMS(operation, operArgs, node.config.maxTimeMS);
                 }
 
-                // experimentel feature
+                // DEPRECATED: no longer maintained, do not use in future projects
                 if (node.config.handleDocId) {
                     try {
                         // handle mongodb document id
-                        handleDocumentId(requestArg, false);
+                        handleDocumentId(operArgs, false);
                     } catch (err) {
                         // on error set warning and continue
                         throw Error(
@@ -208,7 +205,8 @@ module.exports = function (RED) {
                     }
                 }
 
-                const request = dbElement[operation](...requestArg);
+                // execute operation
+                const request = operTarget[operation](...operArgs);
 
                 // output handling on aggregate or find operation
                 if (operation === "aggregate" || operation === "find") {
@@ -248,6 +246,7 @@ module.exports = function (RED) {
 
                 done();
             } catch (err) {
+                console.error(err);
                 // operation error handling
                 node.counter.error++;
                 node.status({
