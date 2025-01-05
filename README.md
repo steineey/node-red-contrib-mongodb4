@@ -220,7 +220,7 @@ So this will work:
 
 ### More information about collection operations
 
-[Collection-API v5.12](https://mongodb.github.io/node-mongodb-native/6.12/classes/Collection.html)
+[Collection-API v6.12](https://mongodb.github.io/node-mongodb-native/6.12/classes/Collection.html)
 
 ### Payload Output
 
