@@ -15,7 +15,7 @@ jobs:
       MONGODB_COLLECTION: test
     strategy:
       matrix:
-        node-version: [14, 16, 18]
+        node-version: [16, 18, 20, 22]
     runs-on: ubuntu-latest
     steps:
       - name: Get code

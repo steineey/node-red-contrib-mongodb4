@@ -246,7 +246,6 @@ module.exports = function (RED) {
 
                 done();
             } catch (err) {
-                console.error(err);
                 // operation error handling
                 node.counter.error++;
                 node.status({

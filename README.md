@@ -31,22 +31,16 @@ npm install --save --omit=dev node-red-contrib-mongodb4
 
 ## Compatibility
 
-The latest version of node-red-contrib-mongodb4@2.4.x is compatible with the following MongoDB server versions: 7.0, 6.0, 5.0, 4.4, 4.2, 4.0, 3.6
+The latest version of node-red-contrib-mongodb4@2.4.x is compatible with the following MongoDB server versions: 8.0, 7.0, 6.0, 5.0, 4.4, 4.2, 4.0
 
-Node-RED >= v2.0.0,  
-NodeJS >= v14.20.1.
+Node-RED >= v3.0.0  
+NodeJS >= v16.20.1
 
-## Upgrade to node-red-contrib-mongodb4@2.x.x
+## Upgrade to node-red-contrib-mongodb4@3.x.x
 
-Version 2.x of this node-red node is now using the mongodb driver version 5.x.
+Version 3.x of this node-red node is now using the mongodb driver version 6.12.
 
-Driver versions 5.x are not compatible with Node.js v12 or earlier. If you want to use this version of the driver, you must use Node.js v14.20.1 or greater.
-
-The upgraded driver removes support for the Collection.insert(), Collection.update(), and Collection.remove() helper methods. The following list provides instructions on how to replace the functionality of the removed methods:
-
--   Migrate from Collection.insert() to insertOne() or insertMany()
--   Migrate from Collection.update() to updateOne() or updateMany()
--   Migrate from Collection.remove() to deleteOne() or deleteMany()
+These breaking changes could affect you if you upgrade from node-red-contrib-mongodb4@2.x.x to node-red-contrib-mongodb@3.x.x. [Read here](https://www.mongodb.com/docs/drivers/node/current/upgrade/#version-6.0-breaking-changes) 
 
 ## Usage Example
 
@@ -130,7 +124,7 @@ If you set the value of ConnectTimeoutMS or SocketTimeoutMS to 0, your applicati
 ### More Options
 
 -   **Options (JSON)** - MongoDB Driver 4 MongoClient supports more options. Feel free to overwrite all client options with your own.
-    [Read the docs: MongoClientOptions](https://mongodb.github.io/node-mongodb-native/5.2/interfaces/MongoClientOptions.html)
+    [Read the docs: MongoClientOptions](https://mongodb.github.io/node-mongodb-native/6.12/interfaces/MongoClientOptions.html)
 
 ### Connection Pools
 
@@ -226,7 +220,7 @@ So this will work:
 
 ### More information about collection operations
 
-[Collection-API v5.9](https://mongodb.github.io/node-mongodb-native/5.9/classes/Collection.html)
+[Collection-API v5.12](https://mongodb.github.io/node-mongodb-native/6.12/classes/Collection.html)
 
 ### Payload Output
 
@@ -261,4 +255,4 @@ return msg;
 
 ### More general driver information
 
-[Visit the MongoDB Driver Docs](https://www.mongodb.com/docs/drivers/node/v5.8/)
+[Visit the MongoDB Driver Docs](https://www.mongodb.com/docs/drivers/node/current/)

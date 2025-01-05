@@ -1,6 +1,6 @@
 {
     "name": "node-red-contrib-mongodb4",
-    "version": "2.5.2",
+    "version": "3.0.0",
     "description": "A MongoDB node for Node-Red without limitations.",
     "keywords": [
         "node-red",
@@ -21,7 +21,7 @@
         "test-env-atlas": "DOTENV_CONFIG_PATH=test/mongodb-atlas.env mocha test/mongodb_spec.js -r dotenv/config --timeout=5000"
     },
     "dependencies": {
-        "mongodb": "^5.9.2"
+        "mongodb": "^6.12.0"
     },
     "node-red": {
         "version": ">=2.0.0",
@@ -30,12 +30,12 @@
         }
     },
     "engines": {
-        "node": ">=14.20.1"
+        "node": ">=16.20.1"
     },
     "devDependencies": {
-        "dotenv": "^16.3.1",
-        "mocha": "^10.2.0",
-        "node-red": "^3.1.11",
+        "dotenv": "^16.4.7",
+        "mocha": "^11.0.1",
+        "node-red": "^4.0.8",
         "node-red-node-test-helper": "^0.3.4",
         "should": "^13.2.3"
     }
