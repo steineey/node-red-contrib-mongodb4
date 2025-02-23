@@ -131,11 +131,51 @@ module.exports = function (RED) {
             handleDocId: config.handleDocId,
         };
 
-        node.counter = {
-            success: 0,
-            error: 0,
+        /* display node metric in node status */
+        const metric = {
+            execCtr: 0,
+            successCtr: 0,
+            errorCtr: 0,
+            runtime: 0,
         };
 
+        function updateStatus({ fill }) {
+            node.status({
+                fill: fill,
+                shape: "dot",
+                text: `s=${metric.successCtr}, err=${metric.errorCtr}, rt=${metric.runtime}ms`,
+            });
+        }
+
+        // init
+        updateStatus({ fill: "green" });
+
+        function execStart() {
+            const execStartTs = Date.now();
+            metric.execCtr++;
+            updateStatus({ fill: "blue" });
+            return execStartTs;
+        }
+
+        function execSuccess(execStartTs) {
+            metric.execCtr--;
+            metric.successCtr++;
+            metric.runtime = Date.now() - execStartTs;
+            updateStatus({
+                fill: metric.execCtr > 0 ? "blue" : "green",
+            });
+        }
+
+        function execError(execStartTs) {
+            metric.execCtr--;
+            metric.errorCtr++;
+            metric.runtime = Date.now() - execStartTs;
+            updateStatus({
+                fill: "red",
+            });
+        }
+
+        // mongodb change stream
         node.changeStream = null;
 
         node.closeChangeStream = async () => {
@@ -146,6 +186,9 @@ module.exports = function (RED) {
 
         node.on("input", async (msg, send, done) => {
             done = done || function () {};
+
+            const execStartTs = execStart();
+
             try {
                 // close existing changeStreams if necessary
                 await node.closeChangeStream();
@@ -157,7 +200,7 @@ module.exports = function (RED) {
                 const database = await node.mongoClient.db();
 
                 let operTarget;
-                if(node.config.mode === "db") {
+                if (node.config.mode === "db") {
                     // database operation mode
                     operTarget = database;
                 } else {
@@ -180,11 +223,11 @@ module.exports = function (RED) {
                 let operArgs = [];
                 if (msg.payload) {
                     // operation args, have to be array type
-                    if(Array.isArray(msg.payload)){
+                    if (Array.isArray(msg.payload)) {
                         operArgs = msg.payload;
-                    }else{
+                    } else {
                         operArgs = [msg.payload];
-                    }   
+                    }
                 }
 
                 // add max time
@@ -236,23 +279,11 @@ module.exports = function (RED) {
                     send(msg);
                 }
 
-                // display node status
-                node.counter.success++;
-                node.status({
-                    fill: "green",
-                    shape: "dot",
-                    text: `success ${node.counter.success}, error ${node.counter.error}`,
-                });
-
+                execSuccess(execStartTs);
                 done();
             } catch (err) {
                 // operation error handling
-                node.counter.error++;
-                node.status({
-                    fill: "red",
-                    shape: "dot",
-                    text: "operation failed",
-                });
+                execError(execStartTs);
                 done(err);
             }
         });
