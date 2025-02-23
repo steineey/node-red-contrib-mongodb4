@@ -253,6 +253,20 @@ msg.payload = [{
 return msg;
 ```
 
+### Node Status 
+
+Node status information is displayed below the node:
+
+#### Tags
+- **s** : Number of successful executions
+- **err** : Number of failed executions 
+- **rt** : Last execution runtime in ms 
+
+#### Colors
+- **green** : Last execution was successful 
+- **blue** : Node execution in progress 
+- **red** : Last execution failed
+
 ### More general driver information
 
 [Visit the MongoDB Driver Docs](https://www.mongodb.com/docs/drivers/node/current/)
